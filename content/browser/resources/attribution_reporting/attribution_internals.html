@@ -33,7 +33,9 @@ In this browser:
   <div id="debug-reports-tab" slot="tab">Verbose Debug Reports</div>
   <div id="os-tab" slot="tab">OS Registrations</div>
   <div id="filters-tab" slot="tab">Filters</div>
+  <div id="filters-tab2" slot="tab">Filters Graph</div>
 
+ 
   <div slot="panel">
     <attribution-internals-table id="sourceTable">
     </attribution-internals-table>
@@ -73,6 +75,12 @@ In this browser:
   <div slot="panel">
     <attribution-internals-table id="filterTable">
     </attribution-internals-table>
+  </div>
+  <div slot="panel">
+    <select id="origin-select">
+      <!-- Options will be dynamically populated -->
+    </select>
+    <svg id="filters-chart" width="800" height="400"></svg>
   </div>
 </cr-tab-box>
 </body>
