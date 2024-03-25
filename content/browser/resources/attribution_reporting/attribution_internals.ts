@@ -1176,7 +1176,7 @@ class AttributionInternals implements ObserverInterface {
     console.log('Updating Filters');
     this.handler.getFilters().then(({filters}) => {
       this.filters.setRows(filters.map((mojo) => new Filter(mojo)));
-      this.populateFilterSelect();
+      this.populateFilterSelectAndRender();
     });
   }
 
@@ -1198,7 +1198,7 @@ class AttributionInternals implements ObserverInterface {
     });
   }
 
-  private populateFilterSelect(): void {
+  private populateFilterSelectAndRender(): void {
     console.log('Populating Filter Select');
     const originSelect = document.querySelector<HTMLSelectElement>('#origin-select')!;
     while (originSelect.firstChild) {
@@ -1214,11 +1214,96 @@ class AttributionInternals implements ObserverInterface {
       originSelect.appendChild(option);
     });
     
-    if (uniqueOrigins.length > 0) {
+    if (uniqueOrigins && uniqueOrigins.length > 0) {
       console.log("We do have some filers!");
-      //this.renderChart(uniqueOrigins[0]);
+      this.renderChart(uniqueOrigins[0]!);
     }
   }
+
+  private renderChart(selectedOrigin: string) {
+    // Get the canvas element
+    const canvas = document.querySelector<HTMLCanvasElement>("#filters-chart");
+    if (!canvas) {
+      console.error('Canvas element not found');
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('Failed to get canvas context');
+      return;
+    }
+  
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+    // Define chart dimensions and margins
+    const margin = { top: 20, right: 30, bottom: 50, left: 50 };
+    const width = canvas.width - margin.left - margin.right;
+    const height = canvas.height - margin.top - margin.bottom;
+  
+    // Get data
+    const data = this.filters.getRows().filter(filter => filter.origin === selectedOrigin);
+    if (data.length === 0) {
+      console.warn('No data to render');
+      return;
+    }
+  
+    // Calculate maximum budget
+    const maxBudget = Math.max(...data.map(d => d.initialBudget));
+  
+    // Calculate bar width and gap between epochs
+    const epochGap = 20;
+    const barWidth = (width - (data.length - 1) * epochGap) / (2 * data.length);
+  
+    // Render bars and add X-axis labels
+    data.forEach((d, i) => {
+      const x = margin.left + (barWidth * 2 + epochGap) * i;
+      const initialBarHeight = (d.initialBudget / maxBudget) * height;
+      const consumedBarHeight = (d.consumedBudget / maxBudget) * height;
+      
+      // Draw initial budget bar (blue)
+      ctx.fillStyle = 'blue';
+      ctx.fillRect(x, height + margin.top - initialBarHeight, barWidth, initialBarHeight);
+      
+      // Draw consumed budget bar (red)
+      ctx.fillStyle = 'red';
+      ctx.fillRect(x + barWidth, height + margin.top - consumedBarHeight, barWidth, consumedBarHeight);
+  
+      // Add X-axis labels
+      ctx.fillStyle = 'black';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Epoch ${i + 1}`, x + barWidth + epochGap / 2, height + margin.top + 20);
+    });
+  
+    // Add Y-axis label
+    ctx.fillStyle = 'black';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Budget', margin.left - 30, margin.top + height / 2);
+  
+    // Draw X-axis line
+    ctx.beginPath();
+    ctx.moveTo(margin.left, height + margin.top);
+    ctx.lineTo(width + margin.left, height + margin.top);
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+  
+    // Draw Y-axis line
+    ctx.beginPath();
+    ctx.moveTo(margin.left, margin.top);
+    ctx.lineTo(margin.left, height + margin.top);
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+  
+    // Add X-axis line label
+    ctx.fillStyle = 'black';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Epochs', margin.left + width / 2, height + margin.top + 30);
+  }
+  
 }
 
 function installUnreadIndicator<T>(
