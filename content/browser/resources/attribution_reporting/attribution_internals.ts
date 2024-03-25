@@ -1276,11 +1276,28 @@ class AttributionInternals implements ObserverInterface {
       ctx.fillText(`Epoch ${i + 1}`, x + barWidth + epochGap / 2, height + margin.top + 20);
     });
   
+    // Add Y-axis scale and labels
+    ctx.fillStyle = 'black';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    const scaleCount = 5; // Number of scale markings
+    for (let i = 0; i <= scaleCount; i++) {
+      const budget = (maxBudget * i) / scaleCount;
+      const y = height + margin.top - (budget / maxBudget) * height;
+      ctx.fillText(budget.toFixed(2), margin.left - 10, y);
+      // Draw scale line
+      ctx.beginPath();
+      ctx.moveTo(margin.left - 5, y);
+      ctx.lineTo(margin.left, y);
+      ctx.strokeStyle = 'black';
+      ctx.stroke();
+    }
+  
     // Add Y-axis label
     ctx.fillStyle = 'black';
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
     ctx.fillText('Budget', margin.left - 30, margin.top + height / 2);
   
     // Draw X-axis line
