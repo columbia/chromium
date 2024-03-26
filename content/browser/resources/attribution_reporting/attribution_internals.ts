@@ -1319,6 +1319,22 @@ class AttributionInternals implements ObserverInterface {
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Epochs', margin.left + width / 2, height + margin.top + 30);
+
+    // Add legend
+    const legendBoxSize = 10;
+    const legendTextOffset = 5;
+    const legendTextX = canvas.width - 2 * margin.right + legendTextOffset + legendBoxSize;
+
+    // Draw colored boxes for legend
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(canvas.width - 2 * margin.right, margin.top + 10, legendBoxSize, legendBoxSize);
+    ctx.fillStyle = 'red';
+    ctx.fillRect(canvas.width - 2 * margin.right, margin.top + 30, legendBoxSize, legendBoxSize);
+
+    // Add text labels to the legend
+    ctx.fillStyle = 'black';
+    ctx.fillText('Initial', legendTextX, margin.top + 10);
+    ctx.fillText('Consumed', legendTextX, margin.top + 30);
   }
   
 }
