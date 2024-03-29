@@ -413,6 +413,18 @@ bool GetPartitions(
       const attribution_reporting::SuitableOrigin& querying_origin,
       double required_budget) VALID_CONTEXT_REQUIRED(sequence_checker_);
 
+  AttributionTrigger::AggregatableResult LogBudgetConsumptionEvent(
+      attribution_reporting::AttributionWindow attribution_window,
+      const attribution_reporting::SuitableOrigin& querying_origin,
+      double required_budget,
+      StoredSource* source) VALID_CONTEXT_REQUIRED(sequence_checker_);
+
+  AttributionTrigger::AggregatableResult LogBudgetConsumptionEvent(
+      std::vector<uint64_t> attribution_epochs,
+      const attribution_reporting::SuitableOrigin& querying_origin,
+      double required_budget,
+      StoredSource* source) VALID_CONTEXT_REQUIRED(sequence_checker_);
+
   // Stores the data associated with the aggregatable report, e.g. budget
   // consumed and dedup keys. The report itself will be stored in
   // `GenerateNullAggregatableReportsAndStoreReports()`.
