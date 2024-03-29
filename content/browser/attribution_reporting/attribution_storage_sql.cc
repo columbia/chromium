@@ -2962,6 +2962,20 @@ bool AttributionStorageSql::CreateSchema() {
     return false;
   }
 
+  static constexpr char kPerOriginFiltersLogsTableSql[] =
+      "CREATE TABLE per_origin_filters_logs("
+      "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+      "time INTEGER NOT NULL,"
+      "epoch INTEGER NOT NULL,"
+      "consumed_budget FLOAT NOT NULL,"
+      "initial_budget FLOAT NOT NULL,"
+      "destination_origin TEXT NOT NULL,"
+      "source_origin TEXT NOT NULL,"
+      "source_time INTEGER NOT NULL)";
+  if (!db_.Execute(kPerOriginFiltersLogsTableSql)) {
+    return false;
+  }
+
   // // All columns in this table are const except |budget_consumed| and
   // // which are updated when a non null report is about to be send.
   // // |epoch| is a primary key and represents the period of time covered by the filter
@@ -3515,6 +3529,73 @@ AggregatableResult AttributionStorageSql::PayAllOrNothing(
   return AggregatableResult::kSuccess;
 }
 
+AttributionTrigger::AggregatableResult 
+AttributionStorageSql::LogBudgetConsumptionEvent(
+        attribution_reporting::AttributionWindow attribution_window,
+        const attribution_reporting::SuitableOrigin& querying_origin,
+        double required_budget,
+        StoredSource* source) {
+
+  std::vector<uint64_t> attribution_epochs;
+  for (uint64_t i=attribution_window.epoch_start(); 
+          i<=attribution_window.epoch_end(); ++i) {
+    attribution_epochs.push_back(i);
+  }
+  return LogBudgetConsumptionEvent(attribution_epochs, querying_origin, required_budget, source);
+}
+
+AttributionTrigger::AggregatableResult 
+AttributionStorageSql::LogBudgetConsumptionEvent(
+          std::vector<uint64_t> attribution_epochs,
+          const attribution_reporting::SuitableOrigin& querying_origin,
+          double required_budget,
+          StoredSource* source) {
+
+    // Insert a log for each paying epoch
+    static constexpr char kInsertEpochLog[] =
+      "INSERT INTO per_origin_filters_logs"
+      "(time,epoch,consumed_budget,initial_budget,destination_origin,source_origin,source_time)"
+      "VALUES(?,?,?,?,?,?,?)";
+
+    const base::Time log_time = base::Time::Now();
+
+    // Starting atomic operation
+    sql::Transaction transaction(&db_);
+    if (!transaction.Begin()) {
+      return AggregatableResult::kInternalError;
+    }
+
+    for (auto& epoch : attribution_epochs) {
+      LOG(INFO) << "Logging budget consumption event:";
+      LOG(INFO) << "logging log time " << log_time;
+      LOG(INFO) << "logging epoch " << epoch;
+      LOG(INFO) << "logging required budget " << required_budget;
+      LOG(INFO) << "logging initial budget " << kInitialBudget;
+      LOG(INFO) << "logging querying origin " << net::SchemefulSite(querying_origin).Serialize();
+      LOG(INFO) << "logging source origin " << source->common_info().source_origin().Serialize();
+      LOG(INFO) << "logging source time " << source->source_time();
+
+      sql::Statement stmt(db_.GetCachedStatement(SQL_FROM_HERE, kInsertEpochLog));
+      stmt.BindTime(0, log_time);
+      stmt.BindInt64(1, epoch);
+      stmt.BindDouble(2, required_budget);
+      stmt.BindDouble(3, kInitialBudget);
+      stmt.BindString(4, net::SchemefulSite(querying_origin).Serialize());
+      stmt.BindString(5, source->common_info().source_origin().Serialize());
+      stmt.BindTime(6, source->source_time());
+
+      if (!stmt.Run()) {
+        return AggregatableResult::kInternalError;
+      }  
+    }
+
+    // Finishing atomic operation
+    if (!transaction.Commit()) {
+      return AggregatableResult::kInternalError;
+    }
+    
+    return AggregatableResult::kSuccess;
+  }
 
 AggregatableResult
 AttributionStorageSql::MaybeStoreAggregatableAttributionReportDataM2M(
@@ -3561,6 +3642,8 @@ AttributionStorageSql::MaybeStoreAggregatableAttributionReportDataM2M(
       if (PayAllOrNothing(partition.attribution_window, querying_origin, 
                 global_epsilon) != AggregatableResult::kSuccess) {
           partition.null_report();
+      } else {
+          LogBudgetConsumptionEvent(partition.attribution_window, querying_origin, global_epsilon, *partition.logging_source);
       }
       continue;
     }
@@ -3579,6 +3662,8 @@ AttributionStorageSql::MaybeStoreAggregatableAttributionReportDataM2M(
       if (PayAllOrNothing(partition.attribution_window, querying_origin, 
               p_individual_epsilon) != AggregatableResult::kSuccess) {
         partition.null_report();
+      } else {
+        LogBudgetConsumptionEvent(partition.attribution_window, querying_origin, p_individual_epsilon, *partition.logging_source);
       }
     } else {
       // Partition is union of at least two epochs.
@@ -3587,6 +3672,8 @@ AttributionStorageSql::MaybeStoreAggregatableAttributionReportDataM2M(
         if (PayAllOrNothing(partition.attribution_window, querying_origin, 
                 global_epsilon) !=  AggregatableResult::kSuccess) {
           partition.null_report();
+        } else {
+          LogBudgetConsumptionEvent(partition.attribution_window, querying_origin, global_epsilon, *partition.logging_source);
         }
       } else if (kOptimization == 2) {
         std::vector<uint64_t> active_epochs;
@@ -3601,6 +3688,8 @@ AttributionStorageSql::MaybeStoreAggregatableAttributionReportDataM2M(
         if (PayAllOrNothing(active_epochs, querying_origin, 
                 global_epsilon) != AggregatableResult::kSuccess) {
           partition.null_report();
+        } else {
+          LogBudgetConsumptionEvent(active_epochs, querying_origin, global_epsilon, *partition.logging_source);
         }
       } else {
         return AggregatableResult::kInternalError;
