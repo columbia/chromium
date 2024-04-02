@@ -109,7 +109,7 @@ void ForwardFiltersToWebUI(
         filter.id(),
         filter.time(),
         filter.epoch(),
-        filter.consumed_budget()
+        filter.consumed_budget(),
         filter.initial_budget(),
         filter.destination_origin(),
         filter.source_origin(),
