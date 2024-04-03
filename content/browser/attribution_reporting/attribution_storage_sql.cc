@@ -3662,7 +3662,9 @@ AttributionStorageSql::LogBudgetConsumptionEvent(
       stmt.BindString(5, source->common_info().source_origin().Serialize());
       stmt.BindTime(6, source->source_time());
 
+        LOG(INFO) << "TRYING TO COMMIT";      
       if (!stmt.Run()) {
+        LOG(INFO) << "FAILED TO COMMIT";
         return AggregatableResult::kInternalError;
       }  
     }

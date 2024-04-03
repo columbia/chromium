@@ -40,7 +40,8 @@ void CreateAndAddOverviewDataSource(Profile* profile) {
   source->AddResourcePath(kArcTracingUiJsPath, IDR_ARC_TRACING_UI_JS);
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::ScriptSrc,
-      "script-src chrome://resources 'self';");
+      "script-src chrome://resources 'self' 'unsafe-inline';");
+
 
   base::Value::Dict localized_strings;
   const std::string& app_locale = g_browser_process->GetApplicationLocale();
