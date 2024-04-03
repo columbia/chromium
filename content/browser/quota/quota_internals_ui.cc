@@ -32,7 +32,7 @@ QuotaInternalsUI::QuotaInternalsUI(WebUI* web_ui) : WebUIController(web_ui) {
 
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::ScriptSrc,
-      "script-src chrome://resources 'self';");
+      "script-src chrome://resources 'self' 'unsafe-inline';");
 
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::TrustedTypes,

@@ -10,9 +10,34 @@ found in the LICENSE file.
   <link rel="stylesheet" href="chrome://resources/css/text_defaults.css">
   <link rel="stylesheet" href="attribution_internals.css">
   <script type="module" src="attribution_internals.js"></script>
+  <script type="module" src="d3.v7.js"></script>
   <title>Attribution Reporting API Internals</title>
 </head>
 <body>
+  <svg id="chart-container" width="400" height="300"></svg>
+
+<script>
+    // Sample data
+    document.addEventListener("DOMContentLoaded", function() {
+      const data = [10, 20, 30, 40, 50];
+
+    // Create the SVG element
+    const svg = d3.select("#chart-container");
+
+    // Create bars based on data
+    svg.selectAll("rect")
+        .data(data)
+        .enter()
+        .append("rect")
+        .attr("x", (d, i) => i * 40)
+        .attr("y", (d) => 300 - d)
+        .attr("width", 30)
+        .attr("height", (d) => d)
+        .attr("class", "bar");
+    });
+    
+</script>
+ 
 <header>
 In this browser:
 <ul>

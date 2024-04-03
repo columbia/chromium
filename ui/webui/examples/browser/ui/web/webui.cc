@@ -32,7 +32,7 @@ void EnableTrustedTypesCSP(content::WebUIDataSource* source) {
 void SetJSModuleDefaults(content::WebUIDataSource* source) {
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::ScriptSrc,
-      "script-src chrome://resources 'self';");
+      "script-src chrome://resources 'self' 'unsafe-inline';");
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::FrameSrc, "frame-src 'self';");
   source->OverrideContentSecurityPolicy(
