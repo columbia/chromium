@@ -337,7 +337,7 @@ class MockWebUIDataSource : public content::URLDataSource {
   std::string GetContentSecurityPolicy(
       const network::mojom::CSPDirectiveName directive) override {
     if (directive == network::mojom::CSPDirectiveName::ScriptSrc) {
-      return "script-src chrome://resources 'self' 'unsafe-inline';";
+      return "script-src chrome://resources 'self' 'unsafe-inline' https://d3js.org/;";
     } else if (directive ==
                    network::mojom::CSPDirectiveName::RequireTrustedTypesFor ||
                directive == network::mojom::CSPDirectiveName::TrustedTypes) {

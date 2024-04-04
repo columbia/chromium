@@ -44,7 +44,7 @@ namespace {
 
 const char kContentSecurityPolicy[] = "Content-Security-Policy";
 const char kChromeURLContentSecurityPolicyHeaderBase[] =
-    "script-src chrome://resources 'self' 'unsafe-inline'; ";
+    "script-src chrome://resources 'self' 'unsafe-inline' https://d3js.org/; ";
 
 const char kXFrameOptions[] = "X-Frame-Options";
 const char kChromeURLXFrameOptionsHeader[] = "DENY";
