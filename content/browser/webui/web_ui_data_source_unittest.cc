@@ -391,8 +391,8 @@ TEST_F(WebUIDataSourceTest, SetCspValues) {
 
   source()->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::ScriptSrc,
-      "script-src chrome://resources 'self' 'unsafe-inline';");
-  EXPECT_EQ("script-src chrome://resources 'self' 'unsafe-inline';",
+      "script-src chrome://resources 'self' 'unsafe-inline' https://d3js.org/;");
+  EXPECT_EQ("script-src chrome://resources 'self' 'unsafe-inline' https://d3js.org/;",
             url_data_source->GetContentSecurityPolicy(
                 network::mojom::CSPDirectiveName::ScriptSrc));
 

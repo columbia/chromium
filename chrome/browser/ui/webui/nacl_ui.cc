@@ -57,7 +57,7 @@ void CreateAndAddNaClUIHTMLSource(Profile* profile) {
       profile, chrome::kChromeUINaClHost);
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::ScriptSrc,
-      "script-src chrome://resources 'self' 'unsafe-inline';");
+      "script-src chrome://resources 'self' 'unsafe-inline' https://d3js.org/;");
 
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::TrustedTypes,

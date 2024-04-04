@@ -10,33 +10,124 @@ found in the LICENSE file.
   <link rel="stylesheet" href="chrome://resources/css/text_defaults.css">
   <link rel="stylesheet" href="attribution_internals.css">
   <script type="module" src="attribution_internals.js"></script>
-  <script type="module" src="d3.v7.js"></script>
+  <script type="module" src="https://d3js.org/d3.v6.min.js"></script>
   <title>Attribution Reporting API Internals</title>
 </head>
 <body>
-  <svg id="chart-container" width="400" height="300"></svg>
+  <div id="chart-container" width="400" height="300"></div>
 
-<script>
-    // Sample data
+  <script>
+
     document.addEventListener("DOMContentLoaded", function() {
-      const data = [10, 20, 30, 40, 50];
+      const margin = {top: 10, right: 30, bottom: 20, left: 50},
+    width = 460 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
 
-    // Create the SVG element
-    const svg = d3.select("#chart-container");
+// append the svg object to the body of the page
+const svg = d3.select("#chart-container")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",`translate(${margin.left},${margin.top})`);
 
-    // Create bars based on data
-    svg.selectAll("rect")
-        .data(data)
-        .enter()
-        .append("rect")
-        .attr("x", (d, i) => i * 40)
-        .attr("y", (d) => 300 - d)
-        .attr("width", 30)
-        .attr("height", (d) => d)
-        .attr("class", "bar");
+// Parse the Data
+ const data = [
+  { group: 'banana', Nitrogen: 12, normal: 1, stress: 13 },
+  { group: 'poacee', Nitrogen: 6, normal: 6, stress: 33 },
+  { group: 'lololass', Nitrogen: 11, normal: 28, stress: 12 },
+  { group: 'triticum', Nitrogen: 19, normal: 6, stress: 1 }
+];
+  // List of subgroups = header of the csv files = soil condition here
+  const subgroups =  Object.keys(data[0]).slice(1);
+
+  // List of groups = species here = value of the first column called group -> I show them on the X axis
+  const groups = data.map(d => d.group)
+
+  // Add X axis
+  const x = d3.scaleBand()
+      .domain(groups)
+      .range([0, width])
+      .padding([0.2])
+  svg.append("g")
+    .attr("transform", `translate(0, ${height})`)
+    .call(d3.axisBottom(x).tickSizeOuter(0));
+
+  // Add Y axis
+  const y = d3.scaleLinear()
+    .domain([0, 60])
+    .range([ height, 0 ]);
+  svg.append("g")
+    .call(d3.axisLeft(y));
+
+  // color palette = one color per subgroup
+  const color = d3.scaleOrdinal()
+    .domain(subgroups)
+    .range(['#C7EFCF','#FE5F55','#EEF5DB'])
+
+  //stack the data? --> stack per subgroup
+  const stackedData = d3.stack()
+    .keys(subgroups)
+    (data)
+
+
+
+
+  // ----------------
+  // Create a tooltip
+  // ----------------
+  const tooltip = d3.select("#chart-container")
+    .append("div")
+    .style("opacity", 0)
+    .attr("class", "tooltip")
+    .style("background-color", "white")
+    .style("border", "solid")
+    .style("border-width", "1px")
+    .style("border-radius", "5px")
+    .style("padding", "10px")
+
+  // Three function that change the tooltip when user hover / move / leave a cell
+  const mouseover = function(event, d) {
+    const subgroupName = d3.select(this.parentNode).datum().key;
+    const subgroupValue = d.data[subgroupName];
+    console.log("HELLO");
+    tooltip
+        .text("Hello")
+        .style("opacity", 1)
+
+  }
+  const mousemove = function(event, d) {
+    tooltip.style("transform","translateY(-55%)")
+           .style("left",(event.x)/2+"px")
+           .style("top",(event.y)/2-30+"px")
+  }
+  const mouseleave = function(event, d) {
+    tooltip
+      .style("opacity", 0)
+  }
+
+  // Show the bars
+  svg.append("g")
+    .selectAll("g")
+    // Enter in the stack data = loop key per key = group per group
+    .data(stackedData)
+    .join("g")
+      .attr("fill", d => color(d.key))
+      .selectAll("rect")
+      // enter a second time = loop subgroup per subgroup to add all rectangles
+      .data(d => d)
+      .join("rect")
+        .attr("x", d =>  x(d.data.group))
+        .attr("y", d => y(d[1]))
+        .attr("height", d => y(d[0]) - y(d[1]))
+        .attr("width",x.bandwidth())
+        .attr("stroke", "grey")
+      .on("mouseover", mouseover)
+      .on("mousemove", mousemove)
+      .on("mouseleave", mouseleave)
+
     });
-    
-</script>
+    </script>
  
 <header>
 In this browser:
