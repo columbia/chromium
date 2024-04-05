@@ -1001,7 +1001,7 @@ class AttributionInternals implements ObserverInterface {
   private readonly debugReports = new DebugReportTableModel();
   private readonly osRegistrations = new OsRegistrationTableModel();
   private readonly eventLevelReports: ReportTableModel<EventLevelReport>;
-  private readonly filters = new FilterTableModel();
+  public readonly filters = new FilterTableModel();
   private readonly aggregatableReports:
       ReportTableModel<AggregatableAttributionReport>;
 
@@ -1093,7 +1093,6 @@ class AttributionInternals implements ObserverInterface {
   }
 
   onSourcesChanged(): void {
-    this.updateFilters();
     this.updateSources();
   }
 
@@ -1182,6 +1181,7 @@ class AttributionInternals implements ObserverInterface {
 
     this.updateSources();
     this.updateReports();
+    this.updateFilters();
   }
 
   private updateSources(): void {
