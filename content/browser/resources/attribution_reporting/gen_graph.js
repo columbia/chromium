@@ -139,3 +139,9 @@ function putUpGraph(advertiser, div_selector) {
        .on("mouseleave", mouseleave)
 }
 
+function showGraphClick() {
+  const advertiser = document.querySelector("#advertiser-select").value;
+  const div_selector = "#chart-container";
+  putUpGraph(advertiser, div_selector);
+  console.log("Show Graph Clicked");
+}

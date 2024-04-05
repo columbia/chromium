@@ -15,7 +15,7 @@ found in the LICENSE file.
   <title>Attribution Reporting API Internals</title>
 </head>
 <body>
-
+<!-- 
   <script>
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -24,7 +24,7 @@ found in the LICENSE file.
       }, 3000);
     });
     </script>
- 
+  -->
 <header>
 In this browser:
 <ul>
@@ -88,6 +88,10 @@ In this browser:
     </attribution-internals-table>
   </div>
   <div slot="panel">
+    <select id="advertiser-select">
+      <!-- Options will be dynamically populated -->
+    </select>
+    <button id="show-graph" onclick="showGraphClick()">Go!</button>
     <div id="chart-container" width="400" height="300"></div>
   </div>
 </cr-tab-box>
