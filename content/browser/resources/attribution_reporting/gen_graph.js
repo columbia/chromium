@@ -1,5 +1,22 @@
-function consoleLogPlease() {
-  console.log("Calling this from attribution_internasl.html");
+function formatTime(time) {
+  return time.toString(); //temporary
+}
+
+function getEpochTag(epoch) {
+  return "Epoch " + epoch.toString();
+}
+
+function generateToolTip(tool_tip_data, totalLoss) {
+  const f = 2;
+  let tool_tip_text = "User had a total privacy loss of " + totalLoss.toFixed(f) + " in this epoch on this advertiser.\n";
+  tool_tip_text += "The following publishers contributed to this loss:\n";
+  for(let i = 0; i < tool_tip_data.length; i++) {
+    tool_tip_text += "(" + (i+1)  + ")" + 
+      tool_tip_data[i].sourceOrigin + ": " + tool_tip_data[i].consumedBudget.toFixed(f) + 
+      ", exposed at " + formatTime(tool_tip_data[i].sourceTime) + 
+      " and  checked out at " + formatTime(tool_tip_data[i].time) + "\t";
+  }
+  return tool_tip_text;
 }
 
 function parseData(advertiser) {
@@ -19,7 +36,7 @@ function parseData(advertiser) {
     let epoch_data = data.filter((d) => d.epoch == epoch);
 
     let epoch_result = {
-      group: "Epoch " + epoch.toString()
+      group: getEpochTag(epoch)
     };
 
     for(let j = 0; j < all_publishers.length; j++) {
@@ -32,16 +49,18 @@ function parseData(advertiser) {
     }
     result.push(epoch_result);
   }
-  console.log(result);
-  return result;
+  return {graphdata: result, appendix: data};
 };
 
 function putUpGraph(advertiser, div_selector) {
      //"http://arapi-advertiser.localhost"
-  const margin = {top: 10, right: 30, bottom: 20, left: 50},
+  const margin = {top: 40, right: 30, bottom: 20, left: 50},
   width = 460 - margin.left - margin.right,
-  height = 400 - margin.top - margin.bottom;
+  height = 420 - margin.top - margin.bottom;
  
+ d3.select(div_selector).select("svg").remove();
+ d3.select(div_selector).select("div").remove();
+
  // append the svg object to the body of the page
  const svg = d3.select(div_selector)
    .append("svg")
@@ -51,8 +70,9 @@ function putUpGraph(advertiser, div_selector) {
      .attr("transform",`translate(${margin.left},${margin.top})`);
  
  // Parse the Data
-  const data = parseData(advertiser);
-  
+  const all_data = parseData(advertiser);
+  const data = all_data.graphdata;
+
   // List of subgroups = header of the csv files = soil condition here
   const subgroups =  Object.keys(data[0]).slice(1);
  
@@ -102,9 +122,14 @@ function putUpGraph(advertiser, div_selector) {
    // Three function that change the tooltip when user hover / move / leave a cell
    const mouseover = function(event, d) {
      const subgroupName = d3.select(this.parentNode).datum().key;
+     //console.log(d.data);
      const subgroupValue = d.data[subgroupName];
+     const subgroupEpoch = d.data.group;
+
+     const tool_tip_data = all_data.appendix.filter((d) => d.sourceOrigin == subgroupName
+      && subgroupEpoch == getEpochTag(d.epoch));
      tooltip
-         .text(subgroupName + "consumed budget: " + subgroupValue)
+         .text(generateToolTip(tool_tip_data, subgroupValue))
          .style("opacity", 1)
  
    }
@@ -137,6 +162,14 @@ function putUpGraph(advertiser, div_selector) {
        .on("mouseover", mouseover)
        .on("mousemove", mousemove)
        .on("mouseleave", mouseleave)
+
+    svg.append("text")
+       .attr("x", width / 2) // Adjust position as needed
+       .attr("y", margin.top/2) // Adjust position as needed
+       .attr("text-anchor", "middle") // Center align the text
+       .style("font-size", "14px") // Set font size
+       .style("font-weight", "bold") // Set font weight
+       .text(advertiser);
 }
 
 function showGraphClick() {
