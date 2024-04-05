@@ -1194,6 +1194,7 @@ class AttributionInternals implements ObserverInterface {
     console.log('Updating Filters');
     this.handler.getFilters().then(({filters}) => {
       this.filters.setRows(filters.map((mojo) => new Filter(mojo)));
+      this.populateFilterSelect();
     });
   }
 
@@ -1213,6 +1214,28 @@ class AttributionInternals implements ObserverInterface {
       this.eventLevelReports.setStoredReports(eventLevelReports);
       this.aggregatableReports.setStoredReports(aggregatableReports);
     });
+  }
+
+  private populateFilterSelect(): void {
+    console.log('Populating Filter Select');
+    const advertiserSelect = document.querySelector<HTMLSelectElement>('#advertiser-select')!;
+    while (advertiserSelect.firstChild) {
+      advertiserSelect.removeChild(advertiserSelect.firstChild);
+    }
+
+    const uniqueAdvertisers = Array.from(new Set(this.filters.getRows().map(filter => filter.destinationOrigin)));
+
+    uniqueAdvertisers.forEach(origin => {
+      const option = document.createElement('option');
+      option.value = origin;
+      option.textContent = origin;
+      advertiserSelect.appendChild(option);
+    });
+
+    if (uniqueAdvertisers.length > 0) {
+      console.log("We do have some filers!");
+      //this.renderChart(uniqueOrigins[0]);
+    }
   }
 }
 
