@@ -1,20 +1,34 @@
-function formatTime(time) {
-  return time.toString(); //temporary
+function formatTime(filetime) {
+  const windowsEpochDiff = 11644473600000;
+  const milliseconds = (parseInt(filetime) / 1000) - windowsEpochDiff;
+  const date = new Date(milliseconds);
+  
+  // const monthAbbreviations = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+  //   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  // // Extract day, month, and year components
+  // const day = date.getDate().toString().padStart(2, '0');
+  // const month = monthAbbreviations[date.getMonth()];
+  // const year = date.getFullYear().toString().slice(-2);
+  // const formattedDate = day + month + year;
+
+  // Return the formatted date
+  return date.toUTCString();
 }
 
 function getEpochTag(epoch) {
   return "Epoch " + epoch.toString();
 }
 
-function generateToolTip(tool_tip_data, totalLoss) {
+function generateToolTip(tool_tip_data, epoch, totalLoss) {
   const f = 2;
-  let tool_tip_text = "User had a total privacy loss of " + totalLoss.toFixed(f) + " in this epoch on this advertiser.\n";
-  tool_tip_text += "The following publishers contributed to this loss:\n";
+  let tool_tip_text = "User had a privacy loss of " + totalLoss.toFixed(f) + " in " + epoch + " on this advertiser.\n";
+  tool_tip_text += "User had:\n";
   for(let i = 0; i < tool_tip_data.length; i++) {
     tool_tip_text += "(" + (i+1)  + ")" + 
-      tool_tip_data[i].sourceOrigin + ": " + tool_tip_data[i].consumedBudget.toFixed(f) + 
-      ", exposed at " + formatTime(tool_tip_data[i].sourceTime) + 
-      " and  checked out at " + formatTime(tool_tip_data[i].time) + "\t";
+      "Privacy loss of " + tool_tip_data[i].consumedBudget.toFixed(f) + " in epoch " + tool_tip_data[i].epoch +
+      " from exposure to this advertiser on " + tool_tip_data[i].sourceOrigin + " at " + formatTime(tool_tip_data[i].sourceTime) +
+      " and checkout at " + formatTime(tool_tip_data[i].time) + "\n";
   }
   return tool_tip_text;
 }
@@ -25,8 +39,8 @@ function parseData(advertiser) {
 
   //I have the required subset of data
 
-  let all_publishers = data.map((d) => d.sourceOrigin);
-  all_publishers = [...new Set(all_publishers)];
+  let all_checkout_times = data.map((d) => d.time);
+  all_checkout_times = [...new Set(all_checkout_times)];
 
   const epochs = [ ... new Set(data.map((d) => d.epoch))];
 
@@ -39,13 +53,13 @@ function parseData(advertiser) {
       group: getEpochTag(epoch)
     };
 
-    for(let j = 0; j < all_publishers.length; j++) {
-      epoch_result[all_publishers[j]] = 0;
+    for(let j = 0; j < all_checkout_times.length; j++) {
+      epoch_result[all_checkout_times[j]] = 0;
     }
 
     for(let j = 0; j < epoch_data.length; j++) {
       let row = epoch_data[j];
-      epoch_result[row.sourceOrigin] += row.consumedBudget;
+      epoch_result[row.time] += row.consumedBudget;
     }
     result.push(epoch_result);
   }
@@ -122,14 +136,15 @@ function putUpGraph(advertiser, div_selector) {
    // Three function that change the tooltip when user hover / move / leave a cell
    const mouseover = function(event, d) {
      const subgroupName = d3.select(this.parentNode).datum().key;
-     //console.log(d.data);
+     console.log("Subgroup Name: " + subgroupName)
+     console.log("Data: ");
+     console.log(d.data);
+     console.log("End Data");
      const subgroupValue = d.data[subgroupName];
-     const subgroupEpoch = d.data.group;
 
-     const tool_tip_data = all_data.appendix.filter((d) => d.sourceOrigin == subgroupName
-      && subgroupEpoch == getEpochTag(d.epoch));
+     const tool_tip_data = all_data.appendix.filter((d) => d.time == subgroupName);
      tooltip
-         .text(generateToolTip(tool_tip_data, subgroupValue))
+         .text(generateToolTip(tool_tip_data, d.data.group, subgroupValue))
          .style("opacity", 1)
  
    }
