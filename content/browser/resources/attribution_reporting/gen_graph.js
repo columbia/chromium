@@ -22,7 +22,8 @@ function getEpochTag(epoch) {
 
 function generateToolTip(tool_tip_data, epoch, totalLoss) {
   const f = 2;
-  let tool_tip_text = "User had a privacy loss of " + totalLoss.toFixed(f) + " in " + epoch + " on this advertiser.\n";
+  //let tool_tip_text = "User had a privacy loss of " + totalLoss.toFixed(f) + " in " + epoch + " on this advertiser.\n";
+  let tool_tip_text = "";
   tool_tip_text += "User had:\n";
   for(let i = 0; i < tool_tip_data.length; i++) {
     tool_tip_text += "(" + (i+1)  + ")" + 
@@ -111,9 +112,13 @@ function putUpGraph(advertiser, div_selector) {
      .call(d3.axisLeft(y));
  
    // color palette = one color per subgroup
+   //Visibly distinct 20 colors generated from https://mokole.com/palette.html
    const color = d3.scaleOrdinal()
      .domain(subgroups)
-     .range(['#C7EFCF','#FE5F55','#EEF5DB'])
+     .range(['#ffe4c4','#87cefa','#dda0dd', '#98fb98', '#ff1493', 
+        '#1e90ff', '#ff00ff', '#f08080', '#00ffff', '#ba55d3',
+        '#7fff00', '#0000cd', '#ffff00', '#ffa500', '#ff4500',
+        '#696969', '#2e8b57', '#7f0000', '#191970', '#808000'])
  
    //stack the data? --> stack per subgroup
    const stackedData = d3.stack()
@@ -146,12 +151,15 @@ function putUpGraph(advertiser, div_selector) {
      tooltip
          .text(generateToolTip(tool_tip_data, d.data.group, subgroupValue))
          .style("opacity", 1)
+         .style("position", "absolute")
+
  
    }
    const mousemove = function(event, d) {
      tooltip.style("transform","translateY(-55%)")
             .style("left",(event.x)/2+"px")
-            .style("top",(event.y)/2-30+"px")
+            .style("top", (event.y - 40) + "px")
+            //.style("width", "600px")
    }
    const mouseleave = function(event, d) {
      tooltip
