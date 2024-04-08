@@ -944,7 +944,7 @@ bool HasAggregatableData(
 CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
     const AttributionTrigger& trigger) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-
+  auto start = std::chrono::high_resolution_clock::now();
   const attribution_reporting::TriggerRegistration& trigger_registration =
       trigger.registration();
   
@@ -1011,6 +1011,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   }
 
   if (aggregatable_status.has_value()) {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return assemble_report_result(std::nullopt);
   }
 
@@ -1023,6 +1026,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
     return assemble_report_result(AggregatableResult::kInternalError);
   }
   if (source_ids_to_attribute.empty()) {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return generate_null_reports_and_assemble_report_result(
         AggregatableResult::kNoMatchingImpressions);
   }
@@ -1035,6 +1041,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   }
 
   if (sources_to_attribute.empty()) {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return generate_null_reports_and_assemble_report_result(
             AggregatableResult::kNoMatchingSourceFilterData);    
   }
@@ -1054,6 +1063,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   }
 
   if (aggregatable_status.has_value()) {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return generate_null_reports_and_assemble_report_result(std::nullopt);
   }
 
@@ -1098,7 +1110,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
     if (!transaction.Commit()) {
       return assemble_report_result(AggregatableResult::kInternalError);
     }
-
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return assemble_report_result(store_aggregatable_status);
   }
 
@@ -1107,14 +1121,18 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
     if (!transaction.Commit()) {
       return assemble_report_result(AggregatableResult::kInternalError);
     }
-
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return assemble_report_result(store_aggregatable_status);
   }
 
   if (!transaction.Commit()) {
     return assemble_report_result(AggregatableResult::kInternalError);
   }
-
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
   return assemble_report_result(store_aggregatable_status);
 }
 
