@@ -232,6 +232,11 @@ struct COMPONENT_EXPORT(ATTRIBUTION_REPORTING_REGISTRATION_MOJOM_TRAITS)
     return source.event_level_epsilon;
   }
 
+  static uint64_t source_epoch(
+      const attribution_reporting::SourceRegistration& source) {
+    return source.source_epoch;
+  }
+
   static bool Read(
       attribution_reporting::mojom::SourceRegistrationDataView data,
       attribution_reporting::SourceRegistration* out);
@@ -279,6 +284,23 @@ struct COMPONENT_EXPORT(ATTRIBUTION_REPORTING_REGISTRATION_MOJOM_TRAITS)
 
   static bool Read(attribution_reporting::mojom::EventTriggerDataDataView data,
                    attribution_reporting::EventTriggerData* out);
+};
+
+template <>
+struct COMPONENT_EXPORT(ATTRIBUTION_REPORTING_REGISTRATION_MOJOM_TRAITS)
+    StructTraits<attribution_reporting::mojom::AttributionWindowDataView,
+                 attribution_reporting::AttributionWindow> {
+  static uint64_t epoch_start(const attribution_reporting::AttributionWindow& attribution_window) {
+    return attribution_window.epoch_start();
+  }
+
+  static uint64_t epoch_end(const attribution_reporting::AttributionWindow& attribution_window) {
+    return attribution_window.epoch_end();
+  }
+
+  static bool Read(
+      attribution_reporting::mojom::AttributionWindowDataView data,
+      attribution_reporting::AttributionWindow* out);
 };
 
 template <>
@@ -331,6 +353,12 @@ struct COMPONENT_EXPORT(ATTRIBUTION_REPORTING_REGISTRATION_MOJOM_TRAITS)
     return trigger.aggregatable_values.values();
   }
 
+  static const attribution_reporting::AggregatableValues::Values&
+  aggregatable_cap_values(
+      const attribution_reporting::TriggerRegistration& trigger) {
+    return trigger.aggregatable_cap_values.values();
+  }
+
   static std::optional<uint64_t> debug_key(
       const attribution_reporting::TriggerRegistration& trigger) {
     return trigger.debug_key;
@@ -363,6 +391,26 @@ struct COMPONENT_EXPORT(ATTRIBUTION_REPORTING_REGISTRATION_MOJOM_TRAITS)
   static const std::optional<std::string>& trigger_context_id(
       const attribution_reporting::TriggerRegistration& trigger) {
     return trigger.aggregatable_trigger_config.trigger_context_id();
+  }
+  
+  static double global_epsilon(
+      const attribution_reporting::TriggerRegistration& trigger) {
+    return trigger.global_epsilon;
+  }
+  
+  static const attribution_reporting::AttributionWindow& attribution_window(
+      const attribution_reporting::TriggerRegistration& trigger) {
+    return trigger.attribution_window;
+  }
+
+  static std::string attribution_logic(
+      const attribution_reporting::TriggerRegistration& trigger) {
+    return trigger.attribution_logic;
+  }
+  
+  static std::string partitioning_logic(
+      const attribution_reporting::TriggerRegistration& trigger) {
+    return trigger.partitioning_logic;
   }
 
   static bool Read(

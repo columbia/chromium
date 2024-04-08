@@ -31,6 +31,14 @@ inline constexpr const char kGetMatchingSourcesSql[] =
     "AND I.expiry_time>? "
     "ORDER BY I.priority DESC,I.source_id DESC";
 
+inline constexpr const char kGetMatchingSourcesSqlM2M[] =
+    "SELECT I.source_id "
+    "FROM sources I "
+    "JOIN source_destinations D "
+    "ON D.source_id=I.source_id AND D.destination_site=? "
+    "WHERE I.source_epoch>=? "
+    "AND I.source_epoch<=? ";
+
 inline constexpr const char kSelectExpiredSourcesSql[] =
     "SELECT source_id FROM sources "
     "WHERE expiry_time<=? AND "
@@ -113,6 +121,7 @@ inline constexpr const char kSetReportTimeSql[] =
 #define ATTRIBUTION_SOURCE_COLUMNS_SQL(prefix) \
   prefix "source_id,"                          \
   prefix "source_event_id,"                    \
+  prefix "source_epoch,"                       \
   prefix "source_origin,"                      \
   prefix "reporting_origin,"                   \
   prefix "source_time,"                        \

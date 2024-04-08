@@ -18,6 +18,7 @@
 #include "base/thread_annotations.h"
 #include "base/time/time.h"
 #include "base/types/expected.h"
+#include "content/browser/attribution_reporting/partition.h"
 #include "content/browser/attribution_reporting/attribution_report.h"
 #include "content/browser/attribution_reporting/attribution_storage.h"
 #include "content/browser/attribution_reporting/attribution_trigger.h"
@@ -178,6 +179,9 @@ class CONTENT_EXPORT AttributionStorageSql : public AttributionStorage {
                  bool delete_rate_limit_data) override;
   void SetDelegate(std::unique_ptr<AttributionStorageDelegate>) override;
 
+  CreateReportResult MaybeCreateAndStoreReportM2M(
+      const AttributionTrigger& trigger) override;
+
   [[nodiscard]] StoreSourceResult CheckDestinationRateLimit(
       const StorableSource& source,
       base::Time source_time);
@@ -299,6 +303,15 @@ class CONTENT_EXPORT AttributionStorageSql : public AttributionStorage {
       std::vector<StoredSource::Id>& source_ids_to_deactivate)
       VALID_CONTEXT_REQUIRED(sequence_checker_);
 
+  bool FindMatchingSourceForTriggerM2M(
+    const AttributionTrigger& trigger,
+    std::vector<StoredSource::Id>& source_ids_to_attribute)
+    VALID_CONTEXT_REQUIRED(sequence_checker_);
+
+bool GetPartitions(
+    std::vector<Partition>& partitions,
+    const attribution_reporting::TriggerRegistration& trigger_registration);
+
   AttributionTrigger::EventLevelResult MaybeCreateEventLevelReport(
       const AttributionInfo& attribution_info,
       const StoredSource&,
@@ -383,6 +396,23 @@ class CONTENT_EXPORT AttributionStorageSql : public AttributionStorage {
       std::optional<int>& max_aggregatable_reports_per_destination)
       VALID_CONTEXT_REQUIRED(sequence_checker_);
 
+  AttributionTrigger::AggregatableResult
+  MaybeCreateAggregatableAttributionReportM2M(
+      std::vector<StoredSource>& sources_to_attribute,
+      const AttributionTrigger& trigger,
+      std::vector<Partition>& partitions)
+      VALID_CONTEXT_REQUIRED(sequence_checker_);
+
+  AttributionTrigger::AggregatableResult PayAllOrNothing(
+      std::vector<uint64_t> attribution_epochs,
+      const attribution_reporting::SuitableOrigin& querying_origin,
+      double required_budget) VALID_CONTEXT_REQUIRED(sequence_checker_);
+
+  AttributionTrigger::AggregatableResult PayAllOrNothing(
+      attribution_reporting::AttributionWindow attribution_window,
+      const attribution_reporting::SuitableOrigin& querying_origin,
+      double required_budget) VALID_CONTEXT_REQUIRED(sequence_checker_);
+
   // Stores the data associated with the aggregatable report, e.g. budget
   // consumed and dedup keys. The report itself will be stored in
   // `GenerateNullAggregatableReportsAndStoreReports()`.
@@ -393,6 +423,15 @@ class CONTENT_EXPORT AttributionStorageSql : public AttributionStorage {
       int num_aggregatable_reports,
       std::optional<uint64_t> dedup_key,
       std::optional<int>& max_aggregatable_reports_per_source)
+      VALID_CONTEXT_REQUIRED(sequence_checker_);
+
+  AttributionTrigger::AggregatableResult
+  MaybeStoreAggregatableAttributionReportDataM2M(
+      const AttributionInfo& attribution_info,
+      std::vector<Partition>& partitions,
+      std::optional<AttributionReport>& report,
+      const AttributionTrigger& trigger,
+      StoredSource& source)
       VALID_CONTEXT_REQUIRED(sequence_checker_);
 
   [[nodiscard]] bool StoreAttributionReport(AttributionReport& report)

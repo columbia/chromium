@@ -252,6 +252,7 @@ bool StructTraits<attribution_reporting::mojom::SourceRegistrationDataView,
   out->debug_key = data.debug_key();
   out->debug_reporting = data.debug_reporting();
   out->trigger_data_matching = data.trigger_data_matching();
+  out->source_epoch = data.source_epoch();
   return out->IsValid();
 }
 
@@ -277,6 +278,16 @@ bool StructTraits<attribution_reporting::mojom::EventTriggerDataDataView,
   out->priority = data.priority();
   return true;
 }
+
+// static
+bool StructTraits<attribution_reporting::mojom::AttributionWindowDataView,
+                  attribution_reporting::AttributionWindow>::
+    Read(attribution_reporting::mojom::AttributionWindowDataView data,
+         attribution_reporting::AttributionWindow* out) {
+  *out = std::move(*attribution_reporting::AttributionWindow::Create(data.epoch_start(), data.epoch_end()));
+  return true;
+}
+
 
 // static
 bool StructTraits<attribution_reporting::mojom::AggregatableTriggerDataDataView,
@@ -352,6 +363,20 @@ bool StructTraits<attribution_reporting::mojom::TriggerRegistrationDataView,
 
   out->aggregatable_values = std::move(*aggregatable_values);
 
+  attribution_reporting::AggregatableValues::Values cap_values;
+  if (!data.ReadAggregatableCapValues(&cap_values)) {
+    return false;
+  }
+
+  auto aggregatable_cap_values =
+      attribution_reporting::AggregatableValues::Create(std::move(cap_values));
+  if (!aggregatable_cap_values) {
+    return false;
+  }
+
+  out->aggregatable_cap_values = std::move(*aggregatable_cap_values);
+
+
   if (!data.ReadAggregatableDedupKeys(&out->aggregatable_dedup_keys)) {
     return false;
   }
@@ -378,6 +403,23 @@ bool StructTraits<attribution_reporting::mojom::TriggerRegistrationDataView,
 
   out->debug_key = data.debug_key();
   out->debug_reporting = data.debug_reporting();
+
+  if (!out->global_epsilon.SetIfValid(data.global_epsilon())) {
+    return false;
+  }
+
+  if (!data.ReadAttributionWindow(&out->attribution_window)) {
+    return false;
+  }
+
+  if (!data.ReadAttributionLogic(&out->attribution_logic)) {
+    return false;
+  }
+
+  if (!data.ReadPartitioningLogic(&out->partitioning_logic)) {
+    return false;
+  }
+  
   return true;
 }
 

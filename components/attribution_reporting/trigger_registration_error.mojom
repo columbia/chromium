@@ -48,4 +48,15 @@ enum TriggerRegistrationError {
 
   kTriggerContextIdInvalidValue = 37,
   kTriggerContextIdInvalidSourceRegistrationTimeConfig = 38,
+
+  kGlobalEpsilonWrongType = 39,
+  kGlobalEpsilonValueInvalid = 40,
+
+  kAttributionWindowWrongType = 41,
+  kAttributionWindowValueInvalid = 42,
+  kAttributionWindowStartMissing = 43,
+  kAttributionWindowEndMissing = 44,
+  kAttributionWindowListWrongType = 45,
+
+  kAttributionOrPartitioningLogicValueInvalid = 46,
 };

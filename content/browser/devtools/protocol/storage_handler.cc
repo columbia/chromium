@@ -5,6 +5,7 @@
 #include "content/browser/devtools/protocol/storage_handler.h"
 
 #include <stdint.h>
+#include "base/logging.h"
 
 #include <memory>
 #include <optional>
@@ -12,7 +13,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-
 #include "base/functional/bind.h"
 #include "base/notreached.h"
 #include "base/scoped_observation.h"
@@ -2008,6 +2008,14 @@ ToEventTriggerData(const std::vector<attribution_reporting::EventTriggerData>&
   return out;
 }
 
+std::unique_ptr<Storage::AttributionReportingAttributionWindow>
+ToAttributionWindow(const attribution_reporting::AttributionWindow& attribution_window) {
+  return Storage::AttributionReportingAttributionWindow::Create()
+          .SetEpochStart(base::NumberToString(attribution_window.epoch_start()))
+          .SetEpochEnd(base::NumberToString(attribution_window.epoch_end()))
+          .Build();
+  }
+
 std::unique_ptr<Array<Storage::AttributionReportingAggregatableTriggerData>>
 ToAggregatableTriggerData(
     const std::vector<attribution_reporting::AggregatableTriggerData>&
@@ -2099,6 +2107,7 @@ void StorageHandler::OnSourceHandled(
               registration.aggregatable_report_window.InSeconds())
           .SetTriggerDataMatching(
               ToTriggerDataMatching(registration.trigger_data_matching))
+          .SetEpoch(base::NumberToString(registration.source_epoch))
           .Build();
 
   if (registration.debug_key.has_value()) {
@@ -2130,6 +2139,12 @@ void StorageHandler::OnTriggerHandled(const AttributionTrigger& trigger,
           .SetSourceRegistrationTimeConfig(ToSourceRegistrationTimeConfig(
               registration.aggregatable_trigger_config
                   .source_registration_time_config()))
+          .SetGlobalEpsilon(registration.global_epsilon)
+          .SetAttributionWindow(ToAttributionWindow(registration.attribution_window))
+          .SetAggregatableCapValues(
+              ToAggregatableValueEntries(registration.aggregatable_cap_values))
+          .SetAttributionLogic(registration.attribution_logic)
+          .SetPartitioningLogic(registration.partitioning_logic)
           .Build();
 
   if (registration.debug_key.has_value()) {

@@ -9,6 +9,7 @@
 #include <optional>
 #include <utility>
 
+#include "base/logging.h"
 #include "base/check.h"
 #include "base/check_op.h"
 #include "base/feature_list.h"
@@ -868,6 +869,9 @@ void AttributionSrcLoader::ResourceClient::HandleSourceRegistration(
     attribution_reporting::SuitableOrigin reporting_origin) {
   DCHECK_NE(eligibility_, RegistrationEligibility::kTrigger);
 
+  LOG(INFO) << "HandleSourceRegistration" ;
+  LOG(INFO) << StringUTF8Adaptor(headers.web_trigger).AsStringPiece();
+
   headers.MaybeLogAllTriggerHeadersIgnored(loader_->local_frame_->DomWindow());
 
   if (!HasEitherWebOrOsHeader(headers.source_count(), headers.request_id)) {
@@ -922,6 +926,9 @@ void AttributionSrcLoader::ResourceClient::HandleSourceRegistration(
                   /*invalid_parameter=*/headers.os_source);
     return;
   }
+  LOG(INFO) << "HandledSourceRegistration" ;
+  // LOG(INFO) << StringUTF8Adaptor(headers.web_trigger).AsStringPiece();
+
   data_host_->OsSourceDataAvailable(std::move(registration_items));
   ++num_registrations_;
 }
@@ -947,6 +954,8 @@ void AttributionSrcLoader::ResourceClient::HandleTriggerRegistration(
       headers.LogTriggerIgnored(loader_->local_frame_->DomWindow());
       return;
     }
+    LOG(INFO) << "HandleTriggerRegistration" ;
+    LOG(INFO) << StringUTF8Adaptor(headers.web_trigger).AsStringPiece();
 
     auto trigger_data = attribution_reporting::TriggerRegistration::Parse(
         StringUTF8Adaptor(headers.web_trigger).AsStringPiece());

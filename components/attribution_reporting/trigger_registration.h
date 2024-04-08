@@ -14,6 +14,8 @@
 #include "base/component_export.h"
 #include "base/types/expected.h"
 #include "base/values.h"
+#include "components/attribution_reporting/global_epsilon.h"
+#include "components/attribution_reporting/attribution_window.h"
 #include "components/attribution_reporting/aggregatable_trigger_config.h"
 #include "components/attribution_reporting/aggregatable_values.h"
 #include "components/attribution_reporting/filters.h"
@@ -54,6 +56,7 @@ struct COMPONENT_EXPORT(ATTRIBUTION_REPORTING) TriggerRegistration {
   friend bool operator==(const TriggerRegistration&,
                          const TriggerRegistration&) = default;
 
+
   FilterPair filters;
   std::optional<uint64_t> debug_key;
   std::vector<AggregatableDedupKey> aggregatable_dedup_keys;
@@ -63,6 +66,13 @@ struct COMPONENT_EXPORT(ATTRIBUTION_REPORTING) TriggerRegistration {
   bool debug_reporting = false;
   std::optional<SuitableOrigin> aggregation_coordinator_origin;
   AggregatableTriggerConfig aggregatable_trigger_config;
+  
+  GlobalEpsilon global_epsilon;
+  AttributionWindow attribution_window;
+  AggregatableValues aggregatable_cap_values;
+  std::string attribution_logic;
+  std::string partitioning_logic;
+
 };
 
 }  // namespace attribution_reporting

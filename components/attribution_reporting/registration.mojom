@@ -59,6 +59,11 @@ struct AggregatableTriggerData {
   FilterPair filters;
 };
 
+struct AttributionWindow {
+  uint64 epoch_start;
+  uint64 epoch_end;
+};
+
 // Target site(s) where a source can be attributed.
 struct DestinationSet {
   array<network.mojom.SchemefulSite> destinations;
@@ -129,6 +134,8 @@ struct SourceRegistration {
   // the containing source registration. Must be greater than or equal to 0.
   // https://wicg.github.io/attribution-reporting-api/#obtain-a-randomized-source-response
   double event_level_epsilon;
+
+  uint64 source_epoch;
 };
 
 // Mojo representation of the trigger configuration provided by a reporting
@@ -198,6 +205,22 @@ struct TriggerRegistration {
   // Specifies the context ID associated with the trigger. The context ID
   // cannot be empty or longer than 64 bytes.
   string? trigger_context_id;
+
+  // Controls the epsilon parameter requested to be consumed by user. Must be greater than or equal to 0.
+  double global_epsilon;
+
+  // The attribution_window in which the attribution logic will look for matching sources
+  AttributionWindow attribution_window;
+
+  // A map of aggregation key identifier and the corresponding cap value.
+  map<string, uint32> aggregatable_cap_values;
+
+  // The attribution logic
+  string attribution_logic;
+  
+  // The partitioning logic
+  string partitioning_logic;
+
 };
 
 // Represents a source or trigger registration item that will be passed to the OS, if supported.

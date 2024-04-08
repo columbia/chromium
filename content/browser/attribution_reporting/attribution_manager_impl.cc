@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/logging.h"
 #include "base/barrier_closure.h"
 #include "base/check.h"
 #include "base/check_op.h"
@@ -651,6 +652,7 @@ void AttributionManagerImpl::OnSourceStored(
 void AttributionManagerImpl::HandleTrigger(
     AttributionTrigger trigger,
     GlobalRenderFrameHostId render_frame_id) {
+
   MaybeEnqueueEvent(SourceOrTriggerRFH{.source_or_trigger = std::move(trigger),
                                        .rfh_id = render_frame_id});
 }
@@ -663,7 +665,7 @@ void AttributionManagerImpl::StoreTrigger(AttributionTrigger trigger,
         std::exchange(trigger.registration().debug_key, std::nullopt);
   }
 
-  attribution_storage_.AsyncCall(&AttributionStorage::MaybeCreateAndStoreReport)
+  attribution_storage_.AsyncCall(&AttributionStorage::MaybeCreateAndStoreReportM2M)
       .WithArgs(trigger)
       .Then(base::BindOnce(&AttributionManagerImpl::OnReportStored,
                            weak_factory_.GetWeakPtr(), std::move(trigger),
@@ -852,7 +854,7 @@ void AttributionManagerImpl::OnReportStored(
     min_new_report_time = report->report_time();
     MaybeSendDebugReport(std::move(*report));
   }
-
+  // # TODO(kelly): here we might need to change the the timing of the aaggregatable report
   if (auto& report = result.new_aggregatable_report()) {
     min_new_report_time = AttributionReport::MinReportTime(
         min_new_report_time, report->report_time());

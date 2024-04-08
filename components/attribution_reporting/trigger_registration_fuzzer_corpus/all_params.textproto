@@ -402,4 +402,80 @@ object_value {
       }
     }
   }
+  field {
+    name: "global_epsilon"
+    value {
+      number_value {
+        float_value {
+          value: 4.2
+        }
+      }
+    }
+  }
+  field {
+    name: "attribution_window"
+    value {
+      object_value {
+        field {
+          name: "epoch_start"
+          value: {
+            integer_value {
+              value: 0
+            }
+          }
+        }
+        field {
+          name: "epoch_end"
+          value: {
+            integer_value {
+              value: 1
+            }
+          }
+        }
+      }
+    }
+  }
+  field {
+    name: "aggregatable_cap_values"
+    value {
+      object_value {
+        field {
+          name: "a"
+          value {
+            number_value {
+              integer_value {
+                value: 123
+              }
+            }
+          }
+        }
+        field {
+          name: "b"
+          value {
+            number_value {
+              integer_value {
+                value: 456
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  field {
+    name: "attribution_logic"
+    value {
+      string_value {
+        "123"
+      }
+    }
+  }
+  field {
+    name: "partitioning_logic"
+    value {
+      string_value {
+        "123"
+      }
+    }
+  }
 }

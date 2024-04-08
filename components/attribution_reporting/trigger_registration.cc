@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include <type_traits>
+#include "base/logging.h"
 #include "base/feature_list.h"
 #include "base/functional/function_ref.h"
 #include "base/json/json_reader.h"
@@ -17,6 +19,8 @@
 #include "base/values.h"
 #include "components/aggregation_service/features.h"
 #include "components/aggregation_service/parsing_utils.h"
+#include "components/attribution_reporting/attribution_window.h"
+#include "components/attribution_reporting/global_epsilon.h"
 #include "components/attribution_reporting/aggregatable_dedup_key.h"
 #include "components/attribution_reporting/aggregatable_trigger_config.h"
 #include "components/attribution_reporting/aggregatable_trigger_data.h"
@@ -41,6 +45,11 @@ constexpr char kAggregatableDeduplicationKeys[] =
 constexpr char kAggregatableTriggerData[] = "aggregatable_trigger_data";
 constexpr char kAggregatableValues[] = "aggregatable_values";
 constexpr char kEventTriggerData[] = "event_trigger_data";
+constexpr char kAttributionWindow[] = "attribution_window";
+constexpr char kAggregatableCapValues[] = "aggregatable_cap_values";
+constexpr char kAttributionLogic[] = "attribution_logic";
+constexpr char kPartitioningLogic[] = "partitioning_logic";
+
 
 base::expected<std::optional<SuitableOrigin>, TriggerRegistrationError>
 ParseAggregationCoordinator(const base::Value* value) {
@@ -69,6 +78,12 @@ ParseAggregationCoordinator(const base::Value* value) {
   return *aggregation_coordinator_origin;
 }
 
+template <typename T, typename = std::void_t<>>
+struct has_to_json : std::false_type {};
+
+template <typename T>
+struct has_to_json<T, std::void_t<decltype(std::declval<T>().ToJson())>> : std::true_type {};
+
 template <typename T>
 void SerializeListIfNotEmpty(base::Value::Dict& dict,
                              std::string_view key,
@@ -78,8 +93,14 @@ void SerializeListIfNotEmpty(base::Value::Dict& dict,
   }
 
   base::Value::List list;
-  for (const auto& value : vec) {
-    list.Append(value.ToJson());
+  if constexpr (has_to_json<T>::value) {
+    for (const auto& value : vec) {
+      list.Append(value.ToJson());
+    }
+  } else {
+    for (const auto& value : vec) {
+      list.Append(base::NumberToString(value));
+    }
   }
   dict.Set(key, std::move(list));
 }
@@ -116,7 +137,7 @@ void RecordTriggerRegistrationError(TriggerRegistrationError error) {
   static_assert(
       TriggerRegistrationError::kMaxValue ==
           TriggerRegistrationError::
-              kTriggerContextIdInvalidSourceRegistrationTimeConfig,
+              kAttributionOrPartitioningLogicValueInvalid,
       "Bump version of Conversions.TriggerRegistrationError9 histogram.");
   base::UmaHistogramEnumeration("Conversions.TriggerRegistrationError9", error);
 }
@@ -151,6 +172,33 @@ TriggerRegistration::Parse(base::Value::Dict dict) {
   ASSIGN_OR_RETURN(
       registration.aggregatable_values,
       AggregatableValues::FromJSON(dict.Find(kAggregatableValues)));
+  
+  ASSIGN_OR_RETURN(
+      registration.aggregatable_cap_values,
+      AggregatableValues::FromJSON(dict.Find(kAggregatableCapValues)));
+  
+  ASSIGN_OR_RETURN(registration.global_epsilon,
+                   GlobalEpsilon::Parse(dict));
+
+  ASSIGN_OR_RETURN(
+      registration.attribution_window,
+      AttributionWindow::FromJSON(dict.Find(kAttributionWindow)));
+
+  auto parseStringLambda = [](base::Value& value) -> base::expected<std::string, TriggerRegistrationError> {
+      const std::string* str = value.GetIfString();
+      if (!str) {
+        return base::unexpected(TriggerRegistrationError::kAttributionOrPartitioningLogicValueInvalid);
+      }
+      return *str;
+  };
+
+  ASSIGN_OR_RETURN(
+      registration.attribution_logic, 
+      parseStringLambda(*dict.Find(kAttributionLogic)));
+  
+  ASSIGN_OR_RETURN(
+      registration.partitioning_logic, 
+      parseStringLambda(*dict.Find(kPartitioningLogic)));
 
   if (base::FeatureList::IsEnabled(
           aggregation_service::kAggregationServiceMultipleCloudProviders)) {
@@ -164,6 +212,9 @@ TriggerRegistration::Parse(base::Value::Dict dict) {
 
   ASSIGN_OR_RETURN(registration.aggregatable_trigger_config,
                    AggregatableTriggerConfig::Parse(dict));
+
+  LOG(INFO) << "PARSE TRIGGER REGISTRATION" ;
+  LOG(INFO) << registration.ToJson() ;
 
   return registration;
 }
@@ -221,6 +272,10 @@ base::Value::Dict TriggerRegistration::ToJson() const {
     dict.Set(kAggregatableValues, aggregatable_values.ToJson());
   }
 
+  if (!aggregatable_cap_values.values().empty()) {
+    dict.Set(kAggregatableCapValues, aggregatable_cap_values.ToJson());
+  }
+  
   SerializeDebugKey(dict, debug_key);
 
   SerializeDebugReporting(dict, debug_reporting);
@@ -233,7 +288,10 @@ base::Value::Dict TriggerRegistration::ToJson() const {
   }
 
   aggregatable_trigger_config.Serialize(dict);
-
+  global_epsilon.Serialize(dict);
+  dict.Set(kAttributionWindow, attribution_window.ToJson());
+  dict.Set(kAttributionLogic, attribution_logic);
+  dict.Set(kPartitioningLogic, partitioning_logic);
   return dict;
 }
 
