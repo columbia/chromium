@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
+#include <chrono>
 
 #include "base/check.h"
 #include "base/check_op.h"
@@ -94,7 +95,7 @@ namespace content {
 namespace {
 
 constexpr double kInitialBudget = 10.0;
-uint32_t kOptimization = 0;
+uint32_t kOptimization = 2;
 char kSensitivityMetric[] = "L1";
 
 using AggregatableResult = ::content::AttributionTrigger::AggregatableResult;
@@ -1167,7 +1168,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
 bool AttributionStorageSql::FindMatchingSourceForTriggerM2M(
     const AttributionTrigger& trigger,
     std::vector<StoredSource::Id>& source_ids_to_attribute) {
-      
+  auto start = std::chrono::high_resolution_clock::now();
   // TODO(kelly): sometimes the querying origin might be the publisher/source - extend in the future
   const SuitableOrigin& querying_origin = trigger.destination_origin();
 
@@ -1188,6 +1189,9 @@ bool AttributionStorageSql::FindMatchingSourceForTriggerM2M(
   while (statement.Step()) {
       source_ids_to_attribute.push_back(StoredSource::Id(statement.ColumnInt64(0)));
   }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  LOG(INFO) << "Source Time:"<<duration.count()<< std::endl;
   return statement.Succeeded();
 }
 
@@ -1303,7 +1307,10 @@ AttributionStorageSql::MaybeCreateAggregatableAttributionReportM2M(
   for (auto& partition : partitions) {
     for (uint64_t i=partition.attribution_window.epoch_start(); 
             i <= partition.attribution_window.epoch_end(); i++) {
-      partition.sources_per_epoch[i] = std::move(sources_per_epoch[i]);
+      auto it = sources_per_epoch.find(i);
+      if (it != sources_per_epoch.end()) {
+        partition.sources_per_epoch[i] = std::move(sources_per_epoch[i]);
+      }
     }
   }
   //--------------------------------------------------------------------------------
@@ -1334,6 +1341,7 @@ AttributionStorageSql::MaybeCreateAggregatableAttributionReportM2M(
 
 CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReport(
     const AttributionTrigger& trigger) {
+  auto start = std::chrono::high_resolution_clock::now();
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   const attribution_reporting::TriggerRegistration& trigger_registration =
@@ -1427,6 +1435,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReport(
   }
 
   if (event_level_status.has_value() && aggregatable_status.has_value()) {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return assemble_report_result(/*new_event_level_status=*/std::nullopt,
                                   /*new_aggregaable_status=*/std::nullopt);
   }
@@ -1446,6 +1457,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReport(
                                   AggregatableResult::kInternalError);
   }
   if (!source_id_to_attribute.has_value()) {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return generate_null_reports_and_assemble_report_result(
         EventLevelResult::kNoMatchingImpressions,
         AggregatableResult::kNoMatchingImpressions);
@@ -1465,6 +1479,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReport(
           trigger_registration.filters);
 
   if (!top_level_filters_match) {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return generate_null_reports_and_assemble_report_result(
         EventLevelResult::kNoMatchingSourceFilterData,
         AggregatableResult::kNoMatchingSourceFilterData);
@@ -1518,6 +1535,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReport(
   }
 
   if (event_level_status.has_value() && aggregatable_status.has_value()) {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return generate_null_reports_and_assemble_report_result(
         /*new_event_level_status=*/std::nullopt,
         /*new_aggregaable_status=*/std::nullopt);
@@ -1610,6 +1630,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReport(
                                     AggregatableResult::kInternalError);
     }
 
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
     return assemble_report_result(store_event_level_status,
                                   store_aggregatable_status);
   }
@@ -1658,6 +1681,10 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReport(
     return assemble_report_result(EventLevelResult::kInternalError,
                                   AggregatableResult::kInternalError);
   }
+
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  LOG(INFO) << "Budget Time:"<<duration.count()<< std::endl;
 
   return assemble_report_result(store_event_level_status,
                                 store_aggregatable_status);
