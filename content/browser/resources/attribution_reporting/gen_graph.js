@@ -68,7 +68,7 @@ function parseData(advertiser) {
 };
 
 function putUpGraph(advertiser, div_selector) {
-     //"http://arapi-advertiser.localhost"
+     //"http://advertiser.localhost"
   const margin = {top: 40, right: 30, bottom: 20, left: 50},
   width = 460 - margin.left - margin.right,
   height = 420 - margin.top - margin.bottom;
@@ -106,7 +106,7 @@ function putUpGraph(advertiser, div_selector) {
  
    // Add Y axis
    const y = d3.scaleLinear()
-     .domain([0, 1]) //
+     .domain([0, 2]) //
      .range([ height, 0 ]);
    svg.append("g")
      .call(d3.axisLeft(y));
