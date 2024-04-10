@@ -21,17 +21,20 @@ function getEpochTag(epoch) {
 }
 
 function generateToolTip(tool_tip_data, epoch, totalLoss) {
+  if(tool_tip_data.length <= 0)
+    return "";
   const f = 2;
   //let tool_tip_text = "User had a privacy loss of " + totalLoss.toFixed(f) + " in " + epoch + " on this advertiser.\n";
   let tool_tip_text = "";
-  tool_tip_text += "User had: <br>";
+  tool_tip_text += "User checked out at " + formatTime(tool_tip_data[0].time) + " on advertiser. <br>User incurred: <br> <ul>";
   for(let i = 0; i < tool_tip_data.length; i++) {
-    tool_tip_text += "(" + (i+1)  + ")" + 
+    tool_tip_text += "<li>" + 
       "Privacy loss of " + tool_tip_data[i].consumedBudget.toFixed(f) + " in epoch " + tool_tip_data[i].epoch +
-      " from exposure to this advertiser on " + tool_tip_data[i].sourceOrigin + " at " + formatTime(tool_tip_data[i].sourceTime) +
-      " and checkout at " + formatTime(tool_tip_data[i].time) + "<br>";
+      " from exposure on " + tool_tip_data[i].sourceOrigin + " at " + 
+      formatTime(tool_tip_data[i].sourceTime - (4n - tool_tip_data[i].epoch) * 24n * 3720n * 1000000n) + 
+      "</li>";
   }
-  return tool_tip_text;
+  return tool_tip_text + "</ul>";
 }
 
 function parseData(advertiser) {
@@ -135,6 +138,7 @@ function putUpGraph(advertiser, div_selector) {
      .style("border-width", "1px")
      .style("border-radius", "5px")
      .style("padding", "10px")
+     .style("width", "350px")
  
    // Three function that change the tooltip when user hover / move / leave a cell
    const mouseover = function(event, d) {
@@ -159,8 +163,8 @@ function putUpGraph(advertiser, div_selector) {
 
    const mousemove = function(event, d) {
      tooltip.style("transform","translateY(-55%)")
-            .style("left",(event.x)/2+"px")
-            .style("top", (event.y - 40) + "px")
+            .style("left",((event.x)/2 + 40) +"px")
+            .style("top", ((event.y/2) + 100) + "px")
             //.style("width", "600px")
    }
    const mouseleave = function(event, d) {
@@ -194,7 +198,6 @@ function putUpGraph(advertiser, div_selector) {
        .attr("text-anchor", "middle") // Center align the text
        .style("font-size", "14px") // Set font size
        .style("font-weight", "bold") // Set font weight
-       .text(advertiser);
 }
 
 function showGraphClick() {

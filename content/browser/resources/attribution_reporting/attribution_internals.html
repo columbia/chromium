@@ -16,26 +16,26 @@ found in the LICENSE file.
 </head>
 <body>
 <header>
-In this browser:
+<!-- In this browser:
 <ul>
 <li>Attribution Reporting is <b id="feature-status" class="disabled">disabled</b>.
 <li><code>Attribution-Reporting-Support</code> is <b id="attribution-support">web</b>.
 <li>Report delays are <b id="report-delays">enabled</b>.
 <li>Noise is <b id="noise">enabled</b>.
-</ul>
+</ul>-->
 <button id="refresh">Refresh all page data</button>
 <button id="clear-data">Clear all attribution data</button>
 </header>
 <cr-tab-box hidden>
   <div id="sources-tab" slot="tab">Active Sources</div>
   <div id="source-registrations-tab" slot="tab">Source Registrations</div>
+  <div id="filters-graph" slot="tab">Privacy Loss</div>
   <div id="triggers-tab" slot="tab">Trigger Registrations</div>
   <div id="event-level-reports-tab" slot="tab">Event-Level Reports</div>
   <div id="aggregatable-reports-tab" slot="tab">Aggregatable Reports</div>
   <div id="debug-reports-tab" slot="tab">Verbose Debug Reports</div>
   <div id="os-tab" slot="tab">OS Registrations</div>
-  <div id="filters-tab" slot="tab">Filters</div>
-  <div id="filters-graph" slot="tab">Filters Graph</div>
+  <div id="filters-tab" slot="tab">Privacy Loss Table</div>
 
   <div slot="panel">
     <attribution-internals-table id="sourceTable">
@@ -44,6 +44,15 @@ In this browser:
   <div slot="panel">
     <attribution-internals-table id="sourceRegistrationTable">
     </attribution-internals-table>
+  </div>
+  <div slot="panel">
+    <label> Advertiser: 
+    <select id="advertiser-select">
+      <!-- Options will be dynamically populated -->
+    </select>
+    </label>
+    <button id="show-graph" onclick="showGraphClick()">Go!</button>
+    <div id="chart-container" width="400" height="300"></div>
   </div>
   <div slot="panel">
     <attribution-internals-table id="triggerTable">
@@ -76,13 +85,6 @@ In this browser:
   <div slot="panel">
     <attribution-internals-table id="filterTable">
     </attribution-internals-table>
-  </div>
-  <div slot="panel">
-    <select id="advertiser-select">
-      <!-- Options will be dynamically populated -->
-    </select>
-    <button id="show-graph" onclick="showGraphClick()">Go!</button>
-    <div id="chart-container" width="400" height="300"></div>
   </div>
 </cr-tab-box>
 </body>
