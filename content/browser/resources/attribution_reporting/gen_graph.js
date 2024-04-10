@@ -140,21 +140,29 @@ function putUpGraph(advertiser, div_selector) {
  
    // Three function that change the tooltip when user hover / move / leave a cell
    const mouseover = function(event, d) {
-     const subgroupName = d3.select(this.parentNode).datum().key;
-     console.log("Subgroup Name: " + subgroupName)
-     console.log("Data: ");
-     console.log(d.data);
-     console.log("End Data");
-     const subgroupValue = d.data[subgroupName];
 
-     const tool_tip_data = all_data.appendix.filter((d) => d.time == subgroupName);
-     tooltip
-         .text(generateToolTip(tool_tip_data, d.data.group, subgroupValue))
-         .style("opacity", 1)
-         .style("position", "absolute")
-
+    import("//resources/js/static_types.js").then((mod) => {
+      console.log("Hello!");
+      const subgroupName = d3.select(this.parentNode).datum().key;
+      console.log("Subgroup Name: " + subgroupName)
+      console.log("Data: ");
+      console.log(d.data);
+      console.log("End Data");
+      const subgroupValue = d.data[subgroupName];
  
+      const myhtml = mod.getTrustedHTML`hello <br> mello`;
+      console.log("Print1");
+      console.log(myhtml);
+    
+      const tool_tip_data = all_data.appendix.filter((d) => d.time == subgroupName);
+      tooltip
+           .html(myhtml)    
+          // .html(generateToolTip(tool_tip_data, d.data.group, subgroupValue))
+          .style("opacity", 1)
+          .style("position", "absolute")
+    });
    }
+
    const mousemove = function(event, d) {
      tooltip.style("transform","translateY(-55%)")
             .style("left",(event.x)/2+"px")
