@@ -24,12 +24,12 @@ function generateToolTip(tool_tip_data, epoch, totalLoss) {
   const f = 2;
   //let tool_tip_text = "User had a privacy loss of " + totalLoss.toFixed(f) + " in " + epoch + " on this advertiser.\n";
   let tool_tip_text = "";
-  tool_tip_text += "User had:\n";
+  tool_tip_text += "User had: <br>";
   for(let i = 0; i < tool_tip_data.length; i++) {
     tool_tip_text += "(" + (i+1)  + ")" + 
       "Privacy loss of " + tool_tip_data[i].consumedBudget.toFixed(f) + " in epoch " + tool_tip_data[i].epoch +
       " from exposure to this advertiser on " + tool_tip_data[i].sourceOrigin + " at " + formatTime(tool_tip_data[i].sourceTime) +
-      " and checkout at " + formatTime(tool_tip_data[i].time) + "\n";
+      " and checkout at " + formatTime(tool_tip_data[i].time) + "<br>";
   }
   return tool_tip_text;
 }
@@ -115,10 +115,8 @@ function putUpGraph(advertiser, div_selector) {
    //Visibly distinct 20 colors generated from https://mokole.com/palette.html
    const color = d3.scaleOrdinal()
      .domain(subgroups)
-     .range(['#ffe4c4','#87cefa','#dda0dd', '#98fb98', '#ff1493', 
-        '#1e90ff', '#ff00ff', '#f08080', '#00ffff', '#ba55d3',
-        '#7fff00', '#0000cd', '#ffff00', '#ffa500', '#ff4500',
-        '#696969', '#2e8b57', '#7f0000', '#191970', '#808000'])
+     .range(['#b84c7d','#50b47b','#8650a6', '#86a542', '#6881d8', 
+        '#c18739', '#b84c3e', '#f95d6a'])
  
    //stack the data? --> stack per subgroup
    const stackedData = d3.stack()
@@ -149,15 +147,11 @@ function putUpGraph(advertiser, div_selector) {
       console.log(d.data);
       console.log("End Data");
       const subgroupValue = d.data[subgroupName];
- 
-      const myhtml = mod.getTrustedHTML`hello <br> mello`;
-      console.log("Print1");
-      console.log(myhtml);
     
       const tool_tip_data = all_data.appendix.filter((d) => d.time == subgroupName);
       tooltip
-           .html(myhtml)    
-          // .html(generateToolTip(tool_tip_data, d.data.group, subgroupValue))
+           .html(mod.getTrustedHTML(generateToolTip(tool_tip_data, d.data.group, subgroupValue)))    
+          // .html()
           .style("opacity", 1)
           .style("position", "absolute")
     });
