@@ -17,7 +17,18 @@ function formatTime(filetime) {
 }
 
 function getEpochTag(epoch) {
-  return "Epoch " + epoch.toString();
+  switch (epoch) {
+    case 1n:
+      return "Mar 18-24, 2024";
+    case 2n:
+      return "Mar 25-31, 2024";
+    case 3n:
+      return "Apr 1-7, 2024";
+    case 4n:
+      return "Apr 8-14, 2024";
+    default:
+      return "INVALID EPOCH";
+  }
 }
 
 function generateToolTip(tool_tip_data, epoch, totalLoss) {
@@ -26,15 +37,18 @@ function generateToolTip(tool_tip_data, epoch, totalLoss) {
   const f = 2;
   //let tool_tip_text = "User had a privacy loss of " + totalLoss.toFixed(f) + " in " + epoch + " on this advertiser.\n";
   let tool_tip_text = "";
-  tool_tip_text += "User checked out at " + formatTime(tool_tip_data[0].time) + " on advertiser. <br>User incurred: <br> <ul>";
+  tool_tip_text += "User converted at " + formatTime(tool_tip_data[0].time - (47n * 3600n * 1000000n)) + " on advertiser. <br>User incurred: <br> <ul>";
   for(let i = 0; i < tool_tip_data.length; i++) {
     tool_tip_text += "<li>" + 
-      "Privacy loss of " + tool_tip_data[i].consumedBudget.toFixed(f) + " in epoch " + tool_tip_data[i].epoch +
-      " from exposure on " + tool_tip_data[i].sourceOrigin + " at " + 
-      formatTime(tool_tip_data[i].sourceTime - (4n - tool_tip_data[i].epoch) * 24n * 3720n * 1000000n) + 
+      "Privacy loss of " + tool_tip_data[i].consumedBudget.toFixed(f) + " in window from " + getEpochTag(tool_tip_data[i].epoch) +
+      " from impression on " + tool_tip_data[i].sourceOrigin + " at " + 
+      formatTime(tool_tip_data[i].sourceTime - (4n - tool_tip_data[i].epoch) * 7n * 24n * 3660n * 1000000n - 72n * 3600n * 1000000n) + 
       "</li>";
   }
-  return tool_tip_text + "</ul>";
+  tool_tip_text += "<br>";
+  tool_tip_text += "Your browser is capping your privacy loss against this site to 1 within each window of time; ";
+  tool_tip_text += "this offers a generally acceptable level of privacy protection.";
+  return tool_tip_text;
 }
 
 function parseData(advertiser) {
@@ -72,9 +86,9 @@ function parseData(advertiser) {
 
 function putUpGraph(advertiser, div_selector) {
      //"http://advertiser.localhost"
-  const margin = {top: 40, right: 30, bottom: 20, left: 50},
+  const margin = {top: 60, right: 30, bottom: 20, left: 50},
   width = 460 - margin.left - margin.right,
-  height = 420 - margin.top - margin.bottom;
+  height = 450 - margin.top - margin.bottom;
  
  d3.select(div_selector).select("svg").remove();
  d3.select(div_selector).select("div").remove();
@@ -109,7 +123,7 @@ function putUpGraph(advertiser, div_selector) {
  
    // Add Y axis
    const y = d3.scaleLinear()
-     .domain([0, 2]) //
+     .domain([0, 1]) //
      .range([ height, 0 ]);
    svg.append("g")
      .call(d3.axisLeft(y));
@@ -138,7 +152,10 @@ function putUpGraph(advertiser, div_selector) {
      .style("border-width", "1px")
      .style("border-radius", "5px")
      .style("padding", "10px")
-     .style("width", "350px")
+     .style("width", "450px")
+     .style("font-size", "14px") // Set font size
+     .style("z-index", 999)
+
  
    // Three function that change the tooltip when user hover / move / leave a cell
    const mouseover = function(event, d) {
@@ -163,8 +180,8 @@ function putUpGraph(advertiser, div_selector) {
 
    const mousemove = function(event, d) {
      tooltip.style("transform","translateY(-55%)")
-            .style("left",((event.x)/2 + 40) +"px")
-            .style("top", ((event.y/2) + 100) + "px")
+            .style("left", (event.x/2) +"px")
+            .style("top", ((event.y/2) + 80) + "px")
             //.style("width", "600px")
    }
    const mouseleave = function(event, d) {
