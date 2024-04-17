@@ -1,3 +1,5 @@
+const normal_width = 1;
+const hover_width = 3;
 function formatTime(filetime) {
   const windowsEpochDiff = 11644473600000;
   const milliseconds = (parseInt(filetime) / 1000) - windowsEpochDiff;
@@ -13,19 +15,19 @@ function formatTime(filetime) {
   // const formattedDate = day + month + year;
 
   // Return the formatted date
-  return date.toUTCString();
+  return date.toDateString();
 }
 
 function getEpochTag(epoch) {
   switch (epoch) {
     case 1n:
-      return "Mar 18-24, 2024";
+      return "Mar 18-24 '24";
     case 2n:
-      return "Mar 25-31, 2024";
+      return "Mar 25-31 '24";
     case 3n:
-      return "Apr 1-7, 2024";
+      return "Apr 1-7 '24";
     case 4n:
-      return "Apr 8-14, 2024";
+      return "Apr 8-14 '24";
     default:
       return "INVALID EPOCH";
   }
@@ -37,22 +39,24 @@ function generateToolTip(tool_tip_data, epoch, totalLoss) {
   const f = 2;
   //let tool_tip_text = "User had a privacy loss of " + totalLoss.toFixed(f) + " in " + epoch + " on this advertiser.\n";
   let tool_tip_text = "";
-  tool_tip_text += "User converted at " + formatTime(tool_tip_data[0].time - (47n * 3600n * 1000000n)) + " on advertiser. <br>User incurred: <br> <ul>";
-  for(let i = 0; i < tool_tip_data.length; i++) {
-    tool_tip_text += "<li>" + 
-      "Privacy loss of " + tool_tip_data[i].consumedBudget.toFixed(f) + " in window from " + getEpochTag(tool_tip_data[i].epoch) +
-      " from impression on " + tool_tip_data[i].sourceOrigin + " at " + 
-      formatTime(tool_tip_data[i].sourceTime - (4n - tool_tip_data[i].epoch) * 7n * 24n * 3660n * 1000000n - 72n * 3600n * 1000000n) + 
-      "</li>";
-  }
-  tool_tip_text += "<br>";
-  tool_tip_text += "Your browser is capping your privacy loss against this site to 1 within each window of time; ";
-  tool_tip_text += "this offers a generally acceptable level of privacy protection.";
+  tool_tip_text += "On " + formatTime(tool_tip_data[0].time - (47n * 3600n * 1000000n)) + ", you converted on " + 
+                  tool_tip_data[0].destinationOrigin + ". <br> <br>This resulted in a privacy loss of " + totalLoss + 
+                  " against this site due to attributed impression on " + tool_tip_data[0].sourceOrigin + " on " + 
+                  formatTime(tool_tip_data[0].sourceTime - (4n - tool_tip_data[0].epoch) * 7n * 24n * 3660n * 1000000n - 72n * 3600n * 1000000n) + 
+                  "<br>";
+
+  // tool_tip_text += "<br><em>Note: Your browser is capping your privacy loss against this site to 1 within each window of time; ";
+  // tool_tip_text += "this offers a generally acceptable level of privacy protection.</em>";
   return tool_tip_text;
 }
 
 function parseData(advertiser) {
   let data = document.querySelector("#filterTable").model_.rows_;
+  data.forEach(row => {
+    row.destinationOrigin = row.destinationOrigin.replace("http://advertiser", "nike");
+    row.sourceOrigin = row.sourceOrigin.replace("http://publisher", "nytimes");
+  });
+
   data = data.filter((d) => d.destinationOrigin == advertiser);
 
   //I have the required subset of data
@@ -116,24 +120,27 @@ function putUpGraph(advertiser, div_selector) {
    const x = d3.scaleBand()
        .domain(groups)
        .range([0, width])
-       .padding([0.2])
+       .padding([0.3])
    svg.append("g")
      .attr("transform", `translate(0, ${height})`)
-     .call(d3.axisBottom(x).tickSizeOuter(0));
+     .call(d3.axisBottom(x).tickSizeOuter(0))
+     .style("font-size", "12px");
  
    // Add Y axis
    const y = d3.scaleLinear()
      .domain([0, 1]) //
      .range([ height, 0 ]);
    svg.append("g")
-     .call(d3.axisLeft(y));
+     .call(d3.axisLeft(y))
+     .style("font-size", "12px");
  
    // color palette = one color per subgroup
    //Visibly distinct 20 colors generated from https://mokole.com/palette.html
    const color = d3.scaleOrdinal()
      .domain(subgroups)
-     .range(['#b84c7d','#50b47b','#8650a6', '#86a542', '#6881d8', 
-        '#c18739', '#b84c3e', '#f95d6a'])
+     .range([ '#97afc7' ])
+     //.range(['#b84c7d','#50b47b','#8650a6', '#86a542', '#6881d8', 
+     //   '#c18739', '#b84c3e', '#f95d6a'])
  
    //stack the data? --> stack per subgroup
    const stackedData = d3.stack()
@@ -152,13 +159,14 @@ function putUpGraph(advertiser, div_selector) {
      .style("border-width", "1px")
      .style("border-radius", "5px")
      .style("padding", "10px")
-     .style("width", "450px")
-     .style("font-size", "14px") // Set font size
+     .style("width", "250px")
+     .style("font-size", "16px") // Set font size
      .style("z-index", 999)
 
  
    // Three function that change the tooltip when user hover / move / leave a cell
    const mouseover = function(event, d) {
+      d3.select(this).attr("stroke-width", hover_width);
 
     import("//resources/js/static_types.js").then((mod) => {
       console.log("Hello!");
@@ -169,7 +177,7 @@ function putUpGraph(advertiser, div_selector) {
       console.log("End Data");
       const subgroupValue = d.data[subgroupName];
     
-      const tool_tip_data = all_data.appendix.filter((d) => d.time == subgroupName);
+      const tool_tip_data = all_data.appendix.filter((row) => row.time == subgroupName && d.data.group == getEpochTag(row.epoch));
       tooltip
            .html(mod.getTrustedHTML(generateToolTip(tool_tip_data, d.data.group, subgroupValue)))    
           // .html()
@@ -180,11 +188,12 @@ function putUpGraph(advertiser, div_selector) {
 
    const mousemove = function(event, d) {
      tooltip.style("transform","translateY(-55%)")
-            .style("left", (event.x/2) +"px")
+            .style("left", (event.x - 150) +"px")
             .style("top", ((event.y/2) + 80) + "px")
             //.style("width", "600px")
    }
    const mouseleave = function(event, d) {
+    d3.select(this).attr("stroke-width", normal_width);
      tooltip
        .style("opacity", 0)
    }
@@ -204,17 +213,19 @@ function putUpGraph(advertiser, div_selector) {
          .attr("y", d => y(d[1]))
          .attr("height", d => y(d[0]) - y(d[1]))
          .attr("width",x.bandwidth())
-         .attr("stroke", "grey")
+         .attr("stroke", "black")
+         .attr("stroke-width", normal_width) // Border width
        .on("mouseover", mouseover)
        .on("mousemove", mousemove)
        .on("mouseleave", mouseleave)
 
     svg.append("text")
        .attr("x", width / 2) // Adjust position as needed
-       .attr("y", margin.top/2) // Adjust position as needed
+       .attr("y", "-10px") // Adjust position as needed
        .attr("text-anchor", "middle") // Center align the text
        .style("font-size", "14px") // Set font size
        .style("font-weight", "bold") // Set font weight
+       .text("Advertiser: " + advertiser);
 }
 
 function showGraphClick() {

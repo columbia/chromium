@@ -1227,8 +1227,9 @@ class AttributionInternals implements ObserverInterface {
 
     uniqueAdvertisers.forEach(origin => {
       const option = document.createElement('option');
-      option.value = origin;
-      option.textContent = origin;
+      const modifiedOrigin = origin.replace("http://advertiser", "nike");
+      option.value = modifiedOrigin;
+      option.textContent = modifiedOrigin;
       advertiserSelect.appendChild(option);
     });
 
