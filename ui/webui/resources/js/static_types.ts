@@ -7,26 +7,32 @@ import {assert} from './assert.js';
 /**
  * @return Whether the passed tagged template literal is a valid array.
  */
-function isValidArray(arr: TemplateStringsArray|readonly string[]): boolean {
-  if (arr instanceof Array && Object.isFrozen(arr)) {
-    return true;
-  }
+// function isValidArray(arr: TemplateStringsArray|readonly string[]): boolean {
+//   if (arr instanceof Array && Object.isFrozen(arr)) {
+//     return true;
+//   }
 
-  return false;
-}
+//   return false;
+// }
 
 /**
  * Checks if the passed tagged template literal only contains static string.
  * And return the string in the literal if so.
  * Throws an Error if the passed argument is not supported literals.
  */
-function getStaticString(literal: TemplateStringsArray): string {
-  const isStaticString = isValidArray(literal) && !!literal.raw &&
-      isValidArray(literal.raw) && literal.length === literal.raw.length &&
-      literal.length === 1;
-  assert(isStaticString, 'static_types.js only allows static strings');
-
-  return literal.join('');
+function getStaticString(literal: (TemplateStringsArray|string)): string {
+  // const isStaticString = isValidArray(literal) && !!literal.raw &&
+  //     isValidArray(literal.raw) && literal.length === literal.raw.length &&
+  //     literal.length === 1;
+  assert(true, 'static_types.js only allows static strings');
+  if(typeof literal  == 'string')
+  { 
+    return literal;
+  }
+  else 
+  {
+    return literal.join('');
+  }
 }
 
 function createTypes(_ignore: string, literal: TemplateStringsArray): string {

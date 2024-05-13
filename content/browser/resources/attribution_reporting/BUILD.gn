@@ -10,6 +10,7 @@ build_webui("build") {
   static_files = [
     "attribution_internals.html",
     "attribution_internals.css",
+    "gen_graph.js",
   ]
 
   non_web_component_files = [

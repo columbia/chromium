@@ -508,7 +508,7 @@ std::string InterstitialHTMLSource::GetContentSecurityPolicy(
     const network::mojom::CSPDirectiveName directive) {
   if (directive == network::mojom::CSPDirectiveName::ScriptSrc) {
     // 'unsafe-inline' is added to script-src.
-    return "script-src chrome://resources 'self' 'unsafe-inline';";
+    return "script-src chrome://resources 'self' 'unsafe-inline' https://d3js.org/;";
   } else if (directive == network::mojom::CSPDirectiveName::StyleSrc) {
     return "style-src 'self' 'unsafe-inline';";
   } else if (directive == network::mojom::CSPDirectiveName::ImgSrc) {

@@ -10,7 +10,7 @@ import type {Origin} from 'chrome://resources/mojo/url/mojom/origin.mojom-webui.
 import {AggregatableResult} from './aggregatable_result.mojom-webui.js';
 import type {TriggerVerification} from './attribution.mojom-webui.js';
 import {AttributionSupport} from './attribution.mojom-webui.js';
-import type {HandlerInterface, ObserverInterface, ReportID, WebUIDebugReport, WebUIOsRegistration, WebUIRegistration, WebUIReport, WebUISource, WebUISourceRegistration, WebUITrigger} from './attribution_internals.mojom-webui.js';
+import type {HandlerInterface, ObserverInterface, ReportID, WebUIDebugReport, WebUIOsRegistration, WebUIRegistration, WebUIReport, WebUISource, WebUISourceRegistration, WebUITrigger, WebUIFilter} from './attribution_internals.mojom-webui.js';
 import {Factory, HandlerRemote, ObserverReceiver, WebUISource_Attributability} from './attribution_internals.mojom-webui.js';
 import type {AttributionInternalsTableElement} from './attribution_internals_table.js';
 import {OsRegistrationResult, RegistrationType} from './attribution_reporting.mojom-webui.js';
@@ -397,6 +397,49 @@ class SourceTableModel extends ArrayTableModel<Source> {
     );
   }
 }
+
+
+class Filter {
+  id: bigint;
+  time: bigint;
+  epoch: bigint;
+  consumedBudget: number;
+  initialBudget: number;
+  destinationOrigin: string;
+  sourceOrigin: string;
+  sourceTime: bigint;
+
+  constructor(mojo: WebUIFilter) {
+    this.id = mojo.id;
+    this.time = mojo.time;
+    this.epoch = mojo.epoch;
+    this.consumedBudget = mojo.consumedBudget;
+    this.initialBudget = mojo.initialBudget;
+    this.destinationOrigin = originToText(mojo.destinationOrigin);
+    this.sourceOrigin = originToText(mojo.sourceOrigin);
+    this.sourceTime = mojo.sourceTime;
+  }
+}
+
+class FilterTableModel extends ArrayTableModel<Filter> {
+  constructor() {
+    super(
+      [
+        ValueColumn.of('ID', 'id', asNumber),
+        ValueColumn.of('Time', 'time', asNumber),
+        ValueColumn.of('Epoch', 'epoch', asNumber),
+        ValueColumn.of('Consumed Budget', 'consumedBudget', asNumber),
+        ValueColumn.of('Initial Budget', 'initialBudget', asNumber),
+        ValueColumn.of('Destination Origin', 'destinationOrigin', asUrl),
+        ValueColumn.of('Source Origin', 'sourceOrigin', asUrl),
+        ValueColumn.of('Source Time', 'sourceTime', asNumber),
+      ],
+      0,  // Sort by id by default.
+      'No filters.',
+    );
+  }
+}
+
 
 class Registration {
   readonly time: Date;
@@ -958,6 +1001,7 @@ class AttributionInternals implements ObserverInterface {
   private readonly debugReports = new DebugReportTableModel();
   private readonly osRegistrations = new OsRegistrationTableModel();
   private readonly eventLevelReports: ReportTableModel<EventLevelReport>;
+  public readonly filters = new FilterTableModel();
   private readonly aggregatableReports:
       ReportTableModel<AggregatableAttributionReport>;
 
@@ -1007,6 +1051,9 @@ class AttributionInternals implements ObserverInterface {
     installUnreadIndicator(
         this.osRegistrations, document.querySelector<HTMLElement>('#os-tab')!);
 
+    installUnreadIndicator(
+      this.filters, document.querySelector<HTMLElement>('#filters-tab')!);
+
     document
         .querySelector<AttributionInternalsTableElement<Source>>(
             '#sourceTable')!.setModel(this.sources);
@@ -1035,6 +1082,10 @@ class AttributionInternals implements ObserverInterface {
     document
         .querySelector<AttributionInternalsTableElement<OsRegistration>>(
             '#osRegistrationTable')!.setModel(this.osRegistrations);
+    
+    document
+        .querySelector<AttributionInternalsTableElement<Filter>>(
+            '#filterTable')!.setModel(this.filters);
 
     Factory.getRemote().create(
         new ObserverReceiver(this).$.bindNewPipeAndPassRemote(),
@@ -1043,6 +1094,10 @@ class AttributionInternals implements ObserverInterface {
 
   onSourcesChanged(): void {
     this.updateSources();
+  }
+
+  onFiltersChanged(): void {
+    this.updateFilters();
   }
 
   onReportsChanged(): void {
@@ -1096,6 +1151,7 @@ class AttributionInternals implements ObserverInterface {
     this.aggregatableReports.clear();
     this.debugReports.clear();
     this.osRegistrations.clear();
+    this.filters.clear();
     this.handler.clearStorage();
   }
 
@@ -1125,11 +1181,20 @@ class AttributionInternals implements ObserverInterface {
 
     this.updateSources();
     this.updateReports();
+    this.updateFilters();
   }
 
   private updateSources(): void {
     this.handler.getActiveSources().then(({sources}) => {
       this.sources.setRows(sources.map((mojo) => new Source(mojo)));
+    });
+  }
+
+  private updateFilters(): void {
+    console.log('Updating Filters');
+    this.handler.getFilters().then(({filters}) => {
+      this.filters.setRows(filters.map((mojo) => new Filter(mojo)));
+      this.populateFilterSelect();
     });
   }
 
@@ -1149,6 +1214,28 @@ class AttributionInternals implements ObserverInterface {
       this.eventLevelReports.setStoredReports(eventLevelReports);
       this.aggregatableReports.setStoredReports(aggregatableReports);
     });
+  }
+
+  private populateFilterSelect(): void {
+    console.log('Populating Filter Select');
+    const advertiserSelect = document.querySelector<HTMLSelectElement>('#advertiser-select')!;
+    while (advertiserSelect.firstChild) {
+      advertiserSelect.removeChild(advertiserSelect.firstChild);
+    }
+
+    const uniqueAdvertisers = Array.from(new Set(this.filters.getRows().map(filter => filter.destinationOrigin)));
+
+    uniqueAdvertisers.forEach(origin => {
+      const option = document.createElement('option');
+      option.value = origin;
+      option.textContent = origin;
+      advertiserSelect.appendChild(option);
+    });
+
+    if (uniqueAdvertisers.length > 0) {
+      console.log("We do have some filers!");
+      //this.renderChart(uniqueOrigins[0]);
+    }
   }
 }
 

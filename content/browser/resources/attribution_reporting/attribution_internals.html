@@ -8,8 +8,10 @@ found in the LICENSE file.
 <head>
   <meta charset="utf-8">
   <link rel="stylesheet" href="chrome://resources/css/text_defaults.css">
+  <script src="gen_graph.js"></script>
   <link rel="stylesheet" href="attribution_internals.css">
   <script type="module" src="attribution_internals.js"></script>
+  <script type="module" src="https://d3js.org/d3.v6.min.js"></script>
   <title>Attribution Reporting API Internals</title>
 </head>
 <body>
@@ -32,6 +34,9 @@ In this browser:
   <div id="aggregatable-reports-tab" slot="tab">Aggregatable Reports</div>
   <div id="debug-reports-tab" slot="tab">Verbose Debug Reports</div>
   <div id="os-tab" slot="tab">OS Registrations</div>
+  <div id="filters-tab" slot="tab">Filters</div>
+  <div id="filters-graph" slot="tab">Filters Graph</div>
+
   <div slot="panel">
     <attribution-internals-table id="sourceTable">
     </attribution-internals-table>
@@ -67,6 +72,17 @@ In this browser:
   <div slot="panel">
     <attribution-internals-table id="osRegistrationTable">
     </attribution-internals-table>
+  </div>
+  <div slot="panel">
+    <attribution-internals-table id="filterTable">
+    </attribution-internals-table>
+  </div>
+  <div slot="panel">
+    <select id="advertiser-select">
+      <!-- Options will be dynamically populated -->
+    </select>
+    <button id="show-graph" onclick="showGraphClick()">Go!</button>
+    <div id="chart-container" width="400" height="300"></div>
   </div>
 </cr-tab-box>
 </body>
