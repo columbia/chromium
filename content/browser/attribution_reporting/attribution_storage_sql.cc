@@ -941,7 +941,7 @@ bool HasAggregatableData(
 
 }  // namespace
 
-CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
+CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportCookieMonster(
     const AttributionTrigger& trigger) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
@@ -1019,7 +1019,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   }
 
   std::vector<StoredSource::Id> source_ids_to_attribute;
-  if (!FindMatchingSourceForTriggerM2M(trigger, source_ids_to_attribute)) {
+  if (!FindMatchingSourceForTriggerCookieMonster(trigger, source_ids_to_attribute)) {
     return assemble_report_result(AggregatableResult::kInternalError);
   }
   if (source_ids_to_attribute.empty()) {
@@ -1029,7 +1029,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   
   for (auto source_id_to_attribute : source_ids_to_attribute) {
     StoredSource source_to_attribute = ReadSourceToAttribute(source_id_to_attribute)->source;
-    if (source_to_attribute.filter_data().MatchesM2M(trigger_registration.filters)) {
+    if (source_to_attribute.filter_data().MatchesCookieMonster(trigger_registration.filters)) {
       sources_to_attribute.push_back(source_to_attribute);
     }
   }
@@ -1042,7 +1042,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   std::vector<Partition> partitions;
   if (!aggregatable_status.has_value()) {
     if (AggregatableResult create_aggregatable_status =
-            MaybeCreateAggregatableAttributionReportM2M(
+            MaybeCreateAggregatableAttributionReportCookieMonster(
                 sources_to_attribute, trigger, partitions);
         create_aggregatable_status != AggregatableResult::kSuccess) {
       aggregatable_status = create_aggregatable_status;
@@ -1066,7 +1066,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   if (!aggregatable_status.has_value()) {
     // DCHECK(new_aggregatable_report.has_value());
     // make sure function populates new_aggregatable report with final report
-    store_aggregatable_status = MaybeStoreAggregatableAttributionReportDataM2M(
+    store_aggregatable_status = MaybeStoreAggregatableAttributionReportDataCookieMonster(
       attribution_info,
       partitions,
       new_aggregatable_report,
@@ -1118,7 +1118,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   return assemble_report_result(store_aggregatable_status);
 }
 
-bool AttributionStorageSql::FindMatchingSourceForTriggerM2M(
+bool AttributionStorageSql::FindMatchingSourceForTriggerCookieMonster(
     const AttributionTrigger& trigger,
     std::vector<StoredSource::Id>& source_ids_to_attribute) {
   auto start = std::chrono::high_resolution_clock::now();
@@ -1133,7 +1133,7 @@ bool AttributionStorageSql::FindMatchingSourceForTriggerM2M(
 
   // Get all sources from this attribution window - will filter them later
   sql::Statement statement(db_.GetCachedStatement(
-        SQL_FROM_HERE, attribution_queries::kGetMatchingSourcesSqlM2M));
+        SQL_FROM_HERE, attribution_queries::kGetMatchingSourcesSqlCookieMonster));
   
   statement.BindString(0, net::SchemefulSite(querying_origin).Serialize());
   statement.BindInt64(1, SerializeUint64(attribution_window.epoch_start()));
@@ -1196,7 +1196,7 @@ bool AttributionStorageSql::GetPartitions(
 }
 
 AggregatableResult
-AttributionStorageSql::MaybeCreateAggregatableAttributionReportM2M(
+AttributionStorageSql::MaybeCreateAggregatableAttributionReportCookieMonster(
     std::vector<StoredSource>& sources_to_attribute,
     const AttributionTrigger& trigger,
     std::vector<Partition>& partitions) {
@@ -1271,7 +1271,7 @@ AttributionStorageSql::MaybeCreateAggregatableAttributionReportM2M(
   //--------------------------------------------------------------------------------
   // Create a report per partition
   for (auto& partition : partitions) {
-    CreateAggregatableHistogramM2M(
+    CreateAggregatableHistogramCookieMonster(
           partition,
           trigger_registration.aggregatable_trigger_data);
   }
@@ -1293,7 +1293,18 @@ AttributionStorageSql::MaybeCreateAggregatableAttributionReportM2M(
 }
 
 CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReport(
-    const AttributionTrigger& trigger, const int apiFalg) {
+    const AttributionTrigger& trigger, const int apiFlag){
+  LOG(INFO) << "API flag :"<<apiFlag<< std::endl;
+  switch(apiFlag){
+    case 1: 
+      return MaybeCreateAndStoreReportCookieMonster(trigger);
+    default :
+      return MaybeCreateAndStoreReportARA(trigger);
+  }
+}
+
+CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportARA(
+    const AttributionTrigger& trigger) {
   auto start = std::chrono::high_resolution_clock::now();
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
@@ -3544,7 +3555,7 @@ AggregatableResult AttributionStorageSql::PayAllOrNothing(
 
 
 AggregatableResult
-AttributionStorageSql::MaybeStoreAggregatableAttributionReportDataM2M(
+AttributionStorageSql::MaybeStoreAggregatableAttributionReportDataCookieMonster(
     const AttributionInfo& attribution_info,
     std::vector<Partition>& partitions,
     std::optional<AttributionReport>& report,

@@ -56,7 +56,10 @@ class AttributionStorage {
   virtual CreateReportResult MaybeCreateAndStoreReport(
       const AttributionTrigger& trigger, const int apiFlag = 0) = 0;
 
-  virtual CreateReportResult MaybeCreateAndStoreReportM2M(
+  virtual CreateReportResult MaybeCreateAndStoreReportCookieMonster(
+      const AttributionTrigger& trigger) = 0;
+    
+  virtual CreateReportResult MaybeCreateAndStoreReportARA(
       const AttributionTrigger& trigger) = 0;
 
   // Returns all of the reports that should be sent before

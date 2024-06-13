@@ -49,7 +49,7 @@ CONTENT_EXPORT void AttributionLogicLastTouch(Partition& partition,
 CONTENT_EXPORT void AttributionLogicUniform(Partition& partition,
         const base::flat_map<std::string, std::vector<absl::uint128>>& trigger_keypieces_per_source);
 
-CONTENT_EXPORT void CreateAggregatableHistogramM2M(
+CONTENT_EXPORT void CreateAggregatableHistogramCookieMonster(
     Partition& partition,
     const std::vector<attribution_reporting::AggregatableTriggerData>& aggregatable_trigger_data);
   

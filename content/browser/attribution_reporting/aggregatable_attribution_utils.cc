@@ -240,7 +240,7 @@ void AttributionLogicUniform(Partition& partition,
   }
  }
 
-void CreateAggregatableHistogramM2M(
+void CreateAggregatableHistogramCookieMonster(
     Partition& partition,
     const std::vector<attribution_reporting::AggregatableTriggerData>& aggregatable_trigger_data) {
   
