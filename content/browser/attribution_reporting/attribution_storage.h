@@ -48,7 +48,8 @@ class AttributionStorage {
   // TODO(linnan): Remove default argument for `debug_cookie_set`.
   // Alternatively, consider making this a field in `StorableSource`.
   virtual StoreSourceResult StoreSource(const StorableSource& source,
-                                        bool debug_cookie_set = false) = 0;
+                                        bool debug_cookie_set = false
+                                        const int disableRateLimit = 0) = 0;
 
   // Finds all stored sources matching a given `trigger`, and stores the
   // new associated report. Only active sources will receive new attributions.

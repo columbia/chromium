@@ -829,8 +829,15 @@ void AttributionManagerImpl::StoreSource(StorableSource source,
         std::exchange(source.registration().debug_key, std::nullopt);
   }
 
+  //read flag here
+  int disableRateLimit = 0;
+  if(base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableRateLimitingForStoreSource))
+    disableRateLimit = 1;
+
+  LOG(INFO) << "(Outer) disableRateLimit flag value= " << disableRateLimit ;
+
   attribution_storage_.AsyncCall(&AttributionStorage::StoreSource)
-      .WithArgs(source, is_debug_cookie_set)
+      .WithArgs(source, is_debug_cookie_set, disableRateLimit)
       .Then(base::BindOnce(&AttributionManagerImpl::OnSourceStored,
                            weak_factory_.GetWeakPtr(), std::move(source),
                            cleared_debug_key, is_debug_cookie_set));
