@@ -1298,6 +1298,9 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReport(
   switch(apiFlag){
     case 1: 
       return MaybeCreateAndStoreReportCookieMonster(trigger);
+    case 2:
+      kOptimization = 0;
+      return MaybeCreateAndStoreReportCookieMonster(trigger);
     default :
       return MaybeCreateAndStoreReportARA(trigger);
   }
