@@ -532,77 +532,85 @@ StoreSourceResult AttributionStorageSql::StoreSource(
   const base::Time source_time = base::Time::Now();
 
   // TODO(kelly): re-enable deleting sources (when is it OK to delete a source?)
+  if(!disableRateLimit)
+  {
+    if (StoreSourceResult result = CheckDestinationRateLimit(source, source_time);
+        !absl::holds_alternative<StoreSourceResult::Success>(result.result())) {
+      return result;
+    }
 
-  // if (StoreSourceResult result = CheckDestinationRateLimit(source, source_time);
-  //     !absl::holds_alternative<StoreSourceResult::Success>(result.result())) {
-  //   return result;
-  // }
-
-  // Only delete expired impressions periodically to avoid excessive DB
-  // operations.
-  // const base::TimeDelta delete_frequency =
-  //     delegate_->GetDeleteExpiredSourcesFrequency();
-  // DCHECK_GE(delete_frequency, base::TimeDelta());
-  // if (source_time - last_deleted_expired_sources_ >= delete_frequency) {
-  //   if (!DeleteExpiredSources()) {
-  //     return StoreSourceResult::InternalError();
-  //   }
-  //   last_deleted_expired_sources_ = source_time;
-  // }
+    // Only delete expired impressions periodically to avoid excessive DB
+    // operations.
+    const base::TimeDelta delete_frequency =
+        delegate_->GetDeleteExpiredSourcesFrequency();
+    DCHECK_GE(delete_frequency, base::TimeDelta());
+    if (source_time - last_deleted_expired_sources_ >= delete_frequency) {
+      if (!DeleteExpiredSources()) {
+        return StoreSourceResult::InternalError();
+      }
+      last_deleted_expired_sources_ = source_time;
+    }
+  }
+  
 
   const CommonSourceInfo& common_info = source.common_info();
 
   const std::string serialized_source_origin =
       common_info.source_origin().Serialize();
-  // if (!HasCapacityForStoringSource(serialized_source_origin, source_time)) {
-  //   if (int64_t file_size = StorageFileSizeKB(path_to_database_);
-  //       file_size > -1) {
-  //     base::UmaHistogramCounts10M(
-  //         "Conversions.Storage.Sql.FileSizeSourcesPerOriginLimitReached2",
-  //         file_size);
-  //     std::optional<int64_t> number_of_sources = NumberOfSources();
-  //     if (number_of_sources.has_value()) {
-  //       CHECK_GT(*number_of_sources, 0);
-  //       base::UmaHistogramCounts1M(
-  //           "Conversions.Storage.Sql.FileSizeSourcesPerOriginLimitReached2."
-  //           "PerSource",
-  //           file_size * 1024 / *number_of_sources);
-  //     }
-  //   }
-  //   return StoreSourceResult::InsufficientSourceCapacity(
-  //       delegate_->GetMaxSourcesPerOrigin());
-  // }
 
-  // switch (rate_limit_table_.SourceAllowedForDestinationLimit(&db_, source,
-  //                                                            source_time)) {
-  //   case RateLimitResult::kAllowed:
-  //     break;
-  //   case RateLimitResult::kNotAllowed:
-  //     return StoreSourceResult::InsufficientUniqueDestinationCapacity(
-  //         delegate_->GetMaxDestinationsPerSourceSiteReportingSite());
-  //   case RateLimitResult::kError:
-  //     return StoreSourceResult::InternalError();
-  // }
+  if(!disableRateLimit)
+  {
+    if (!HasCapacityForStoringSource(serialized_source_origin, source_time)) {
+      if (int64_t file_size = StorageFileSizeKB(path_to_database_);
+          file_size > -1) {
+        base::UmaHistogramCounts10M(
+            "Conversions.Storage.Sql.FileSizeSourcesPerOriginLimitReached2",
+            file_size);
+        std::optional<int64_t> number_of_sources = NumberOfSources();
+        if (number_of_sources.has_value()) {
+          CHECK_GT(*number_of_sources, 0);
+          base::UmaHistogramCounts1M(
+              "Conversions.Storage.Sql.FileSizeSourcesPerOriginLimitReached2."
+              "PerSource",
+              file_size * 1024 / *number_of_sources);
+        }
+      }
+      return StoreSourceResult::InsufficientSourceCapacity(
+          delegate_->GetMaxSourcesPerOrigin());
+    }
 
-  // switch (rate_limit_table_.SourceAllowedForReportingOriginLimit(&db_, source,
-  //                                                                source_time)) {
-  //   case RateLimitResult::kAllowed:
-  //     break;
-  //   case RateLimitResult::kNotAllowed:
-  //     return StoreSourceResult::ExcessiveReportingOrigins();
-  //   case RateLimitResult::kError:
-  //     return StoreSourceResult::InternalError();
-  // }
+    switch (rate_limit_table_.SourceAllowedForDestinationLimit(&db_, source,
+                                                              source_time)) {
+      case RateLimitResult::kAllowed:
+        break;
+      case RateLimitResult::kNotAllowed:
+        return StoreSourceResult::InsufficientUniqueDestinationCapacity(
+            delegate_->GetMaxDestinationsPerSourceSiteReportingSite());
+      case RateLimitResult::kError:
+        return StoreSourceResult::InternalError();
+    }
 
-  // switch (rate_limit_table_.SourceAllowedForReportingOriginPerSiteLimit(
-  //     &db_, source, source_time)) {
-  //   case RateLimitResult::kAllowed:
-  //     break;
-  //   case RateLimitResult::kNotAllowed:
-  //     return StoreSourceResult::ReportingOriginsPerSiteLimitReached();
-  //   case RateLimitResult::kError:
-  //     return StoreSourceResult::InternalError();
-  // }
+    switch (rate_limit_table_.SourceAllowedForReportingOriginLimit(&db_, source,
+                                                                  source_time)) {
+      case RateLimitResult::kAllowed:
+        break;
+      case RateLimitResult::kNotAllowed:
+        return StoreSourceResult::ExcessiveReportingOrigins();
+      case RateLimitResult::kError:
+        return StoreSourceResult::InternalError();
+    }
+
+    switch (rate_limit_table_.SourceAllowedForReportingOriginPerSiteLimit(
+        &db_, source, source_time)) {
+      case RateLimitResult::kAllowed:
+        break;
+      case RateLimitResult::kNotAllowed:
+        return StoreSourceResult::ReportingOriginsPerSiteLimitReached();
+      case RateLimitResult::kError:
+        return StoreSourceResult::InternalError();
+    }
+  }
+  
 
   sql::Transaction transaction(&db_);
   if (!transaction.Begin()) {
