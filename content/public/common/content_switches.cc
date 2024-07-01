@@ -389,6 +389,12 @@ const char kEnablePreciseMemoryInfo[] = "enable-precise-memory-info";
 // Frames, Shared Storage, Private Aggregation, and their associated features.
 const char kEnablePrivacySandboxAdsApis[] = "enable-privacy-sandbox-ads-apis";
 
+// Enables Custom Attribution Api
+const char kEnableCustomAttributionApis[] = "enable-custom-attribution-apis";
+
+// Disable Rate Limiting for Store Source
+const char kDisableRateLimitingForStoreSource[] = "disable-rate-limit-store-source";
+
 // Set options to cache V8 data. (none, code, or default)
 const char kV8CacheOptions[] = "v8-cache-options";
 

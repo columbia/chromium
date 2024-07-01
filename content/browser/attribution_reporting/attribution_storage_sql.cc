@@ -515,11 +515,13 @@ bool AttributionStorageSql::DeactivateSources(
 
 StoreSourceResult AttributionStorageSql::StoreSource(
     const StorableSource& source,
-    bool debug_cookie_set) {
+    bool debug_cookie_set,
+    const int disableRateLimit) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   CHECK(!source.registration().debug_key.has_value() || debug_cookie_set);
   LOG(INFO) << "STORING SOURCE" ;
+  LOG(INFO) << "(Inner) disableRateLimit flag value= " << disableRateLimit ;
   LOG(INFO) << source.registration().ToJson() ;
   // Force the creation of the database if it doesn't exist, as we need to
   // persist the source.
@@ -530,77 +532,85 @@ StoreSourceResult AttributionStorageSql::StoreSource(
   const base::Time source_time = base::Time::Now();
 
   // TODO(kelly): re-enable deleting sources (when is it OK to delete a source?)
+  if(!disableRateLimit)
+  {
+    if (StoreSourceResult result = CheckDestinationRateLimit(source, source_time);
+        !absl::holds_alternative<StoreSourceResult::Success>(result.result())) {
+      return result;
+    }
 
-  // if (StoreSourceResult result = CheckDestinationRateLimit(source, source_time);
-  //     !absl::holds_alternative<StoreSourceResult::Success>(result.result())) {
-  //   return result;
-  // }
-
-  // Only delete expired impressions periodically to avoid excessive DB
-  // operations.
-  // const base::TimeDelta delete_frequency =
-  //     delegate_->GetDeleteExpiredSourcesFrequency();
-  // DCHECK_GE(delete_frequency, base::TimeDelta());
-  // if (source_time - last_deleted_expired_sources_ >= delete_frequency) {
-  //   if (!DeleteExpiredSources()) {
-  //     return StoreSourceResult::InternalError();
-  //   }
-  //   last_deleted_expired_sources_ = source_time;
-  // }
+    // Only delete expired impressions periodically to avoid excessive DB
+    // operations.
+    const base::TimeDelta delete_frequency =
+        delegate_->GetDeleteExpiredSourcesFrequency();
+    DCHECK_GE(delete_frequency, base::TimeDelta());
+    if (source_time - last_deleted_expired_sources_ >= delete_frequency) {
+      if (!DeleteExpiredSources()) {
+        return StoreSourceResult::InternalError();
+      }
+      last_deleted_expired_sources_ = source_time;
+    }
+  }
+  
 
   const CommonSourceInfo& common_info = source.common_info();
 
   const std::string serialized_source_origin =
       common_info.source_origin().Serialize();
-  // if (!HasCapacityForStoringSource(serialized_source_origin, source_time)) {
-  //   if (int64_t file_size = StorageFileSizeKB(path_to_database_);
-  //       file_size > -1) {
-  //     base::UmaHistogramCounts10M(
-  //         "Conversions.Storage.Sql.FileSizeSourcesPerOriginLimitReached2",
-  //         file_size);
-  //     std::optional<int64_t> number_of_sources = NumberOfSources();
-  //     if (number_of_sources.has_value()) {
-  //       CHECK_GT(*number_of_sources, 0);
-  //       base::UmaHistogramCounts1M(
-  //           "Conversions.Storage.Sql.FileSizeSourcesPerOriginLimitReached2."
-  //           "PerSource",
-  //           file_size * 1024 / *number_of_sources);
-  //     }
-  //   }
-  //   return StoreSourceResult::InsufficientSourceCapacity(
-  //       delegate_->GetMaxSourcesPerOrigin());
-  // }
 
-  // switch (rate_limit_table_.SourceAllowedForDestinationLimit(&db_, source,
-  //                                                            source_time)) {
-  //   case RateLimitResult::kAllowed:
-  //     break;
-  //   case RateLimitResult::kNotAllowed:
-  //     return StoreSourceResult::InsufficientUniqueDestinationCapacity(
-  //         delegate_->GetMaxDestinationsPerSourceSiteReportingSite());
-  //   case RateLimitResult::kError:
-  //     return StoreSourceResult::InternalError();
-  // }
+  if(!disableRateLimit)
+  {
+    if (!HasCapacityForStoringSource(serialized_source_origin, source_time)) {
+      if (int64_t file_size = StorageFileSizeKB(path_to_database_);
+          file_size > -1) {
+        base::UmaHistogramCounts10M(
+            "Conversions.Storage.Sql.FileSizeSourcesPerOriginLimitReached2",
+            file_size);
+        std::optional<int64_t> number_of_sources = NumberOfSources();
+        if (number_of_sources.has_value()) {
+          CHECK_GT(*number_of_sources, 0);
+          base::UmaHistogramCounts1M(
+              "Conversions.Storage.Sql.FileSizeSourcesPerOriginLimitReached2."
+              "PerSource",
+              file_size * 1024 / *number_of_sources);
+        }
+      }
+      return StoreSourceResult::InsufficientSourceCapacity(
+          delegate_->GetMaxSourcesPerOrigin());
+    }
 
-  // switch (rate_limit_table_.SourceAllowedForReportingOriginLimit(&db_, source,
-  //                                                                source_time)) {
-  //   case RateLimitResult::kAllowed:
-  //     break;
-  //   case RateLimitResult::kNotAllowed:
-  //     return StoreSourceResult::ExcessiveReportingOrigins();
-  //   case RateLimitResult::kError:
-  //     return StoreSourceResult::InternalError();
-  // }
+    switch (rate_limit_table_.SourceAllowedForDestinationLimit(&db_, source,
+                                                              source_time)) {
+      case RateLimitResult::kAllowed:
+        break;
+      case RateLimitResult::kNotAllowed:
+        return StoreSourceResult::InsufficientUniqueDestinationCapacity(
+            delegate_->GetMaxDestinationsPerSourceSiteReportingSite());
+      case RateLimitResult::kError:
+        return StoreSourceResult::InternalError();
+    }
 
-  // switch (rate_limit_table_.SourceAllowedForReportingOriginPerSiteLimit(
-  //     &db_, source, source_time)) {
-  //   case RateLimitResult::kAllowed:
-  //     break;
-  //   case RateLimitResult::kNotAllowed:
-  //     return StoreSourceResult::ReportingOriginsPerSiteLimitReached();
-  //   case RateLimitResult::kError:
-  //     return StoreSourceResult::InternalError();
-  // }
+    switch (rate_limit_table_.SourceAllowedForReportingOriginLimit(&db_, source,
+                                                                  source_time)) {
+      case RateLimitResult::kAllowed:
+        break;
+      case RateLimitResult::kNotAllowed:
+        return StoreSourceResult::ExcessiveReportingOrigins();
+      case RateLimitResult::kError:
+        return StoreSourceResult::InternalError();
+    }
+
+    switch (rate_limit_table_.SourceAllowedForReportingOriginPerSiteLimit(
+        &db_, source, source_time)) {
+      case RateLimitResult::kAllowed:
+        break;
+      case RateLimitResult::kNotAllowed:
+        return StoreSourceResult::ReportingOriginsPerSiteLimitReached();
+      case RateLimitResult::kError:
+        return StoreSourceResult::InternalError();
+    }
+  }
+  
 
   sql::Transaction transaction(&db_);
   if (!transaction.Begin()) {
@@ -941,7 +951,7 @@ bool HasAggregatableData(
 
 }  // namespace
 
-CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
+CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportCookieMonster(
     const AttributionTrigger& trigger) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
@@ -1019,7 +1029,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   }
 
   std::vector<StoredSource::Id> source_ids_to_attribute;
-  if (!FindMatchingSourceForTriggerM2M(trigger, source_ids_to_attribute)) {
+  if (!FindMatchingSourceForTriggerCookieMonster(trigger, source_ids_to_attribute)) {
     return assemble_report_result(AggregatableResult::kInternalError);
   }
   if (source_ids_to_attribute.empty()) {
@@ -1029,7 +1039,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   
   for (auto source_id_to_attribute : source_ids_to_attribute) {
     StoredSource source_to_attribute = ReadSourceToAttribute(source_id_to_attribute)->source;
-    if (source_to_attribute.filter_data().MatchesM2M(trigger_registration.filters)) {
+    if (source_to_attribute.filter_data().MatchesCookieMonster(trigger_registration.filters)) {
       sources_to_attribute.push_back(source_to_attribute);
     }
   }
@@ -1042,7 +1052,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   std::vector<Partition> partitions;
   if (!aggregatable_status.has_value()) {
     if (AggregatableResult create_aggregatable_status =
-            MaybeCreateAggregatableAttributionReportM2M(
+            MaybeCreateAggregatableAttributionReportCookieMonster(
                 sources_to_attribute, trigger, partitions);
         create_aggregatable_status != AggregatableResult::kSuccess) {
       aggregatable_status = create_aggregatable_status;
@@ -1066,7 +1076,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   if (!aggregatable_status.has_value()) {
     // DCHECK(new_aggregatable_report.has_value());
     // make sure function populates new_aggregatable report with final report
-    store_aggregatable_status = MaybeStoreAggregatableAttributionReportDataM2M(
+    store_aggregatable_status = MaybeStoreAggregatableAttributionReportDataCookieMonster(
       attribution_info,
       partitions,
       new_aggregatable_report,
@@ -1118,7 +1128,7 @@ CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportM2M(
   return assemble_report_result(store_aggregatable_status);
 }
 
-bool AttributionStorageSql::FindMatchingSourceForTriggerM2M(
+bool AttributionStorageSql::FindMatchingSourceForTriggerCookieMonster(
     const AttributionTrigger& trigger,
     std::vector<StoredSource::Id>& source_ids_to_attribute) {
   auto start = std::chrono::high_resolution_clock::now();
@@ -1133,7 +1143,7 @@ bool AttributionStorageSql::FindMatchingSourceForTriggerM2M(
 
   // Get all sources from this attribution window - will filter them later
   sql::Statement statement(db_.GetCachedStatement(
-        SQL_FROM_HERE, attribution_queries::kGetMatchingSourcesSqlM2M));
+        SQL_FROM_HERE, attribution_queries::kGetMatchingSourcesSqlCookieMonster));
   
   statement.BindString(0, net::SchemefulSite(querying_origin).Serialize());
   statement.BindInt64(1, SerializeUint64(attribution_window.epoch_start()));
@@ -1196,7 +1206,7 @@ bool AttributionStorageSql::GetPartitions(
 }
 
 AggregatableResult
-AttributionStorageSql::MaybeCreateAggregatableAttributionReportM2M(
+AttributionStorageSql::MaybeCreateAggregatableAttributionReportCookieMonster(
     std::vector<StoredSource>& sources_to_attribute,
     const AttributionTrigger& trigger,
     std::vector<Partition>& partitions) {
@@ -1271,7 +1281,7 @@ AttributionStorageSql::MaybeCreateAggregatableAttributionReportM2M(
   //--------------------------------------------------------------------------------
   // Create a report per partition
   for (auto& partition : partitions) {
-    CreateAggregatableHistogramM2M(
+    CreateAggregatableHistogramCookieMonster(
           partition,
           trigger_registration.aggregatable_trigger_data);
   }
@@ -1293,6 +1303,20 @@ AttributionStorageSql::MaybeCreateAggregatableAttributionReportM2M(
 }
 
 CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReport(
+    const AttributionTrigger& trigger, const int apiFlag){
+  LOG(INFO) << "API flag :"<<apiFlag<< std::endl;
+  switch(apiFlag){
+    case 1: 
+      return MaybeCreateAndStoreReportCookieMonster(trigger);
+    case 2:
+      kOptimization = 0;
+      return MaybeCreateAndStoreReportCookieMonster(trigger);
+    default :
+      return MaybeCreateAndStoreReportARA(trigger);
+  }
+}
+
+CreateReportResult AttributionStorageSql::MaybeCreateAndStoreReportARA(
     const AttributionTrigger& trigger) {
   auto start = std::chrono::high_resolution_clock::now();
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -3544,7 +3568,7 @@ AggregatableResult AttributionStorageSql::PayAllOrNothing(
 
 
 AggregatableResult
-AttributionStorageSql::MaybeStoreAggregatableAttributionReportDataM2M(
+AttributionStorageSql::MaybeStoreAggregatableAttributionReportDataCookieMonster(
     const AttributionInfo& attribution_info,
     std::vector<Partition>& partitions,
     std::optional<AttributionReport>& report,

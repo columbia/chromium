@@ -665,8 +665,25 @@ void AttributionManagerImpl::StoreTrigger(AttributionTrigger trigger,
         std::exchange(trigger.registration().debug_key, std::nullopt);
   }
 
-  attribution_storage_.AsyncCall(&AttributionStorage::MaybeCreateAndStoreReportM2M)
-      .WithArgs(trigger)
+  int api = 0;
+  if(base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kEnableCustomAttributionApis))
+  {
+    std::string flagValue = base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(switches::kEnableCustomAttributionApis);
+    if(!flagValue.empty())
+    {
+      if(std::all_of(flagValue.begin(),flagValue.end(),[](char c) { return std::isdigit(c); }))
+      {
+        api = stoi(flagValue);
+      }
+      else 
+      {
+        // Handle invalid value to the option
+      }
+    }
+  }
+
+  attribution_storage_.AsyncCall(&AttributionStorage::MaybeCreateAndStoreReport)
+      .WithArgs(trigger, api)
       .Then(base::BindOnce(&AttributionManagerImpl::OnReportStored,
                            weak_factory_.GetWeakPtr(), std::move(trigger),
                            cleared_debug_key, is_debug_cookie_set));
@@ -812,8 +829,15 @@ void AttributionManagerImpl::StoreSource(StorableSource source,
         std::exchange(source.registration().debug_key, std::nullopt);
   }
 
+  //read flag here
+  int disableRateLimit = 0;
+  if(base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableRateLimitingForStoreSource))
+    disableRateLimit = 1;
+
+  LOG(INFO) << "(Outer) disableRateLimit flag value= " << disableRateLimit ;
+
   attribution_storage_.AsyncCall(&AttributionStorage::StoreSource)
-      .WithArgs(source, is_debug_cookie_set)
+      .WithArgs(source, is_debug_cookie_set, disableRateLimit)
       .Then(base::BindOnce(&AttributionManagerImpl::OnSourceStored,
                            weak_factory_.GetWeakPtr(), std::move(source),
                            cleared_debug_key, is_debug_cookie_set));

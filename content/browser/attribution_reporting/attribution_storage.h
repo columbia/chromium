@@ -48,15 +48,19 @@ class AttributionStorage {
   // TODO(linnan): Remove default argument for `debug_cookie_set`.
   // Alternatively, consider making this a field in `StorableSource`.
   virtual StoreSourceResult StoreSource(const StorableSource& source,
-                                        bool debug_cookie_set = false) = 0;
+                                        bool debug_cookie_set = false,
+                                        const int disableRateLimit = 0) = 0;
 
   // Finds all stored sources matching a given `trigger`, and stores the
   // new associated report. Only active sources will receive new attributions.
   // Returns whether a new report has been scheduled/added to storage.
   virtual CreateReportResult MaybeCreateAndStoreReport(
-      const AttributionTrigger& trigger) = 0;
+      const AttributionTrigger& trigger, const int apiFlag = 0) = 0;
 
-  virtual CreateReportResult MaybeCreateAndStoreReportM2M(
+  virtual CreateReportResult MaybeCreateAndStoreReportCookieMonster(
+      const AttributionTrigger& trigger) = 0;
+    
+  virtual CreateReportResult MaybeCreateAndStoreReportARA(
       const AttributionTrigger& trigger) = 0;
 
   // Returns all of the reports that should be sent before

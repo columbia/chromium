@@ -318,7 +318,7 @@ bool FilterData::Matches(mojom::SourceType source_type,
   });
 }
 
-bool FilterData::MatchesM2M(const FiltersDisjunction& filters, bool negated) const {
+bool FilterData::MatchesCookieMonster(const FiltersDisjunction& filters, bool negated) const {
   if (filters.empty()) {
     return true;
   }
@@ -352,9 +352,9 @@ bool FilterData::MatchesM2M(const FiltersDisjunction& filters, bool negated) con
   });
 }
 
-bool FilterData::MatchesM2M(const FilterPair& filters) const {
-  return MatchesM2M(filters.positive, /*negated=*/false) &&
-         MatchesM2M(filters.negative, /*negated=*/true);
+bool FilterData::MatchesCookieMonster(const FilterPair& filters) const {
+  return MatchesCookieMonster(filters.positive, /*negated=*/false) &&
+         MatchesCookieMonster(filters.negative, /*negated=*/true);
 }
 
 bool FilterData::MatchesForTesting(mojom::SourceType source_type,

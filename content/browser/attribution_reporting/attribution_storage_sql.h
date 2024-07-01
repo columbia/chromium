@@ -157,9 +157,10 @@ class CONTENT_EXPORT AttributionStorageSql : public AttributionStorage {
 
   // AttributionStorage:
   StoreSourceResult StoreSource(const StorableSource& source,
-                                bool debug_cookie_set) override;
+                                bool debug_cookie_set,
+                                const int disableRateLimit = 0) override;
   CreateReportResult MaybeCreateAndStoreReport(
-      const AttributionTrigger& trigger) override;
+      const AttributionTrigger& trigger, const int apiFlag = 0) override;
   std::vector<AttributionReport> GetAttributionReports(
       base::Time max_report_time,
       int limit = -1) override;
@@ -179,7 +180,10 @@ class CONTENT_EXPORT AttributionStorageSql : public AttributionStorage {
                  bool delete_rate_limit_data) override;
   void SetDelegate(std::unique_ptr<AttributionStorageDelegate>) override;
 
-  CreateReportResult MaybeCreateAndStoreReportM2M(
+  CreateReportResult MaybeCreateAndStoreReportARA(
+      const AttributionTrigger& trigger) override;
+  
+  CreateReportResult MaybeCreateAndStoreReportCookieMonster(
       const AttributionTrigger& trigger) override;
 
   [[nodiscard]] StoreSourceResult CheckDestinationRateLimit(
@@ -303,7 +307,7 @@ class CONTENT_EXPORT AttributionStorageSql : public AttributionStorage {
       std::vector<StoredSource::Id>& source_ids_to_deactivate)
       VALID_CONTEXT_REQUIRED(sequence_checker_);
 
-  bool FindMatchingSourceForTriggerM2M(
+  bool FindMatchingSourceForTriggerCookieMonster(
     const AttributionTrigger& trigger,
     std::vector<StoredSource::Id>& source_ids_to_attribute)
     VALID_CONTEXT_REQUIRED(sequence_checker_);
@@ -397,7 +401,7 @@ bool GetPartitions(
       VALID_CONTEXT_REQUIRED(sequence_checker_);
 
   AttributionTrigger::AggregatableResult
-  MaybeCreateAggregatableAttributionReportM2M(
+  MaybeCreateAggregatableAttributionReportCookieMonster(
       std::vector<StoredSource>& sources_to_attribute,
       const AttributionTrigger& trigger,
       std::vector<Partition>& partitions)
@@ -426,7 +430,7 @@ bool GetPartitions(
       VALID_CONTEXT_REQUIRED(sequence_checker_);
 
   AttributionTrigger::AggregatableResult
-  MaybeStoreAggregatableAttributionReportDataM2M(
+  MaybeStoreAggregatableAttributionReportDataCookieMonster(
       const AttributionInfo& attribution_info,
       std::vector<Partition>& partitions,
       std::optional<AttributionReport>& report,

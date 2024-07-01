@@ -31,7 +31,7 @@ inline constexpr const char kGetMatchingSourcesSql[] =
     "AND I.expiry_time>? "
     "ORDER BY I.priority DESC,I.source_id DESC";
 
-inline constexpr const char kGetMatchingSourcesSqlM2M[] =
+inline constexpr const char kGetMatchingSourcesSqlCookieMonster[] =
     "SELECT I.source_id "
     "FROM sources I "
     "JOIN source_destinations D "
